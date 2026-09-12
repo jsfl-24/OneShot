@@ -288,9 +288,10 @@ Implement and test one phase at a time:
 
 ### Phase 6: Cinematic Knowledge/RAG
 
-- Add cinematic knowledge retrieval only after the baseline pipeline works.
-- Keep Qdrant and retrieval logic replaceable.
-- Evaluate whether retrieval improves shot quality before making it mandatory.
+- Cinematic knowledge retrieval is **mandatory** and must be integrated into the shot-generation pipeline.
+- Add the cinematic knowledge retrieval layer after the baseline pipeline works, then make it part of shot generation.
+- Keep Qdrant and retrieval logic replaceable, but the pipeline is not complete without RAG.
+- Do not provide a non-RAG fallback path for shot generation; shot generation always augments with retrieved cinematic context.
 
 ### Phase 7: Storyboard Generation
 
@@ -316,8 +317,8 @@ Implement and test one phase at a time:
 - The LLM must not directly modify the database.
 - Validate all AI-generated shot data before storing it.
 - Keep model serving replaceable; the final model is not yet permanently selected.
-- Keep RAG implementation replaceable.
-- Do not implement QLoRA until the baseline shot-generation pipeline works and has been evaluated.
+- Keep RAG implementation replaceable, but RAG is a required part of the shot-generation pipeline.
+- Fine-tuning (QLoRA) is optional; implement it only if the baseline pipeline with RAG is working and has been evaluated.
 - Do not implement storyboard generation or frontend work ahead of the core pipeline.
 - Make every module independently testable.
 - Implement incrementally; do not generate the entire application in one step.

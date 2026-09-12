@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from oneshot.api import export, projects, scenes, screenplays, shots
+from oneshot.config import settings
 from oneshot.db import init_db
 
 
@@ -23,4 +24,14 @@ app.include_router(export.router)
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "llm": {
+            "provider": settings.LLM_PROVIDER,
+            "model": settings.LLM_MODEL,
+        },
+        "embeddings": {
+            "provider": settings.EMBEDDING_PROVIDER,
+            "model": settings.EMBEDDING_MODEL,
+        },
+    }
