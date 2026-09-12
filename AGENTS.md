@@ -3,9 +3,9 @@
 ## Project status
 
 - This is a **pre-build repo**: no application code, no manifests, no Python env yet. Git repo has no commits.
-- `oneshot.txt` is the authoritative product spec and the source of truth for all work. Read it before writing code; it defines the tech stack (Python, FastAPI, Pydantic, SQLite, Qdrant, Ollama/Gemma), module layout, and API surface.
+- `ONESHOT.md` is the authoritative product spec and the source of truth for all work. Read it before writing code; it defines the tech stack (Python, FastAPI, Pydantic, SQLite, Qdrant, Ollama/Gemma), module layout, and API surface.
 
-## Development rules (from `oneshot.txt`)
+## Development rules (from `ONESHOT.md`)
 
 - Build backend-first, frontend last. Never generate the entire app in one step; make the smallest coherent change for the current phase, then validate before moving on (spec §9, §12).
 - Keep API routes thin (route → service → domain → persistence → isolated AI/LLM layer). No AI logic in route files.
