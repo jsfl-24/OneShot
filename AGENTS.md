@@ -28,6 +28,7 @@
 ### Responses
 
 - Keep responses concise and to the point unless the user asks otherwise.
+- Avoid unwanted greeding and appreciations dont waste tokens and time on unwanted english
 
 ### Planning mode
 
