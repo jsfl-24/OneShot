@@ -4,6 +4,7 @@ Generates a shot list from a structured scene + production constraints.
 """
 
 import json
+
 from oneshot.ai.llm import generate
 from oneshot.ai.prompts import SHOT_GENERATION_PROMPT
 

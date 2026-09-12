@@ -1,8 +1,7 @@
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
-from pydantic import BaseModel
 
+from pydantic import BaseModel
 
 # --- Enums ---
 
@@ -40,7 +39,22 @@ class ShotStatus(str, Enum):
     APPROVED = "approved"
 
 
-# --- Screensplay ---
+# --- Project ---
+
+class ProjectCreate(BaseModel):
+    name: str
+    description: str | None = None
+
+
+class ProjectRead(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+# --- Screenplay ---
 
 class ScreenplayUpload(BaseModel):
     filename: str
@@ -48,10 +62,11 @@ class ScreenplayUpload(BaseModel):
 
 
 class ScreenplayResponse(BaseModel):
-    id: str
+    id: int
+    project_id: int
     filename: str
     format: str
-    extracted_text: str
+    source_path: str
     created_at: datetime
 
 
@@ -62,29 +77,46 @@ class Scene(BaseModel):
     scene_number: int
     heading: str
     location: str
-    time_of_day: Optional[str] = None
-    characters: List[str] = []
-    actions: List[str] = []
-    dialogue: List[str] = []
-    narrative_context: Optional[str] = None
+    time_of_day: str | None = None
+    characters: list[str] = []
+    actions: list[str] = []
+    dialogue: list[str] = []
+    narrative_context: str | None = None
+
+
+class SceneRead(BaseModel):
+    """Detected scene block from Phase 2 extraction (pre-analysis)."""
+
+    id: int
+    screenplay_id: int
+    scene_number: int
+    heading: str
+    location: str
+    time_of_day: str | None = None
+    raw_text: str
+
+
+class SceneListResponse(BaseModel):
+    screenplay_id: int
+    scenes: list[SceneRead]
 
 
 class SceneResponse(BaseModel):
-    scenes: List[Scene]
+    scenes: list[Scene]
     screenplay_id: str
 
 
 # --- Production Constraints ---
 
 class ProductionConstraints(BaseModel):
-    location_constraints: Optional[str] = None
-    camera_movement_allowed: List[CameraMovement] = [CameraMovement.STATIC]
+    location_constraints: str | None = None
+    camera_movement_allowed: list[CameraMovement] = [CameraMovement.STATIC]
     high_angle_possible: bool = False
     low_angle_possible: bool = False
-    available_lenses: List[str] = ["50mm"]
-    equipment_constraints: Optional[str] = None
-    director_preferences: Optional[str] = None
-    additional_notes: Optional[str] = None
+    available_lenses: list[str] = ["50mm"]
+    equipment_constraints: str | None = None
+    director_preferences: str | None = None
+    additional_notes: str | None = None
 
 
 # --- Shot ---
@@ -98,34 +130,34 @@ class Shot(BaseModel):
     lens: str
     camera_movement: CameraMovement
     duration: int  # seconds
-    characters: List[str] = []
-    dialogue: Optional[str] = None
+    characters: list[str] = []
+    dialogue: str | None = None
     action: str
     visual_description: str
-    continuity_notes: Optional[str] = None
-    director_notes: Optional[str] = None
+    continuity_notes: str | None = None
+    director_notes: str | None = None
     status: ShotStatus = ShotStatus.DRAFT
 
 
 class ShotListResponse(BaseModel):
-    shots: List[Shot]
+    shots: list[Shot]
     scene_id: str
     scene_heading: str
 
 
 class ShotUpdate(BaseModel):
-    shot_type: Optional[ShotType] = None
-    camera_angle: Optional[CameraAngle] = None
-    lens: Optional[str] = None
-    camera_movement: Optional[CameraMovement] = None
-    duration: Optional[int] = None
-    characters: Optional[List[str]] = None
-    dialogue: Optional[str] = None
-    action: Optional[str] = None
-    visual_description: Optional[str] = None
-    continuity_notes: Optional[str] = None
-    director_notes: Optional[str] = None
-    status: Optional[ShotStatus] = None
+    shot_type: ShotType | None = None
+    camera_angle: CameraAngle | None = None
+    lens: str | None = None
+    camera_movement: CameraMovement | None = None
+    duration: int | None = None
+    characters: list[str] | None = None
+    dialogue: str | None = None
+    action: str | None = None
+    visual_description: str | None = None
+    continuity_notes: str | None = None
+    director_notes: str | None = None
+    status: ShotStatus | None = None
 
 
 # --- Storyboard ---
@@ -133,7 +165,7 @@ class ShotUpdate(BaseModel):
 class StoryboardPrompt(BaseModel):
     shot_id: str
     prompt: str
-    negative_prompt: Optional[str] = None
+    negative_prompt: str | None = None
 
 
 class StoryboardImage(BaseModel):

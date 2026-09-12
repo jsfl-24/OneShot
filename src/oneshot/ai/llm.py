@@ -5,6 +5,7 @@ Keep this replaceable per spec §4, §9.
 """
 
 import httpx
+
 from oneshot.config import settings
 
 

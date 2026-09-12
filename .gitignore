@@ -8,6 +8,7 @@ venv/
 .env
 *.db
 *.sqlite
+uploads/
 *.qdrant/
 .ruff_cache/
 .pytest_cache/

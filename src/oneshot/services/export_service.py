@@ -1,7 +1,6 @@
 """Export service for production plans."""
 
 import json
-from typing import Any
 
 
 def export_json(shots: list[dict], metadata: dict | None = None) -> str:

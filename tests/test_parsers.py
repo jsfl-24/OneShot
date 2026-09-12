@@ -1,8 +1,8 @@
 """Tests for document parsers."""
 
-from oneshot.parsers.text import extract_text
+
 from oneshot.parsers.document import extract
-from pathlib import Path
+from oneshot.parsers.text import extract_text
 
 
 def test_extract_text_file(tmp_path):

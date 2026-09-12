@@ -4,6 +4,7 @@ Extracts structured scene data from raw screenplay text.
 """
 
 import json
+
 from oneshot.ai.llm import generate
 from oneshot.ai.prompts import SCENE_ANALYSIS_PROMPT
 

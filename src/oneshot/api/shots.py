@@ -1,7 +1,8 @@
 """Shot API routes."""
 
 from fastapi import APIRouter
-from oneshot.schemas import Shot, ShotListResponse, ShotUpdate, ProductionConstraints
+
+from oneshot.schemas import ProductionConstraints, Shot, ShotListResponse, ShotUpdate
 from oneshot.services import shot_service
 
 router = APIRouter(prefix="/shots", tags=["shots"])
@@ -23,4 +24,3 @@ async def generate_shots(scene: dict, constraints: ProductionConstraints | None 
 async def update_shot(shot_id: str, update: ShotUpdate):
     """Update a shot's fields."""
     # TODO: retrieve, apply update, persist
-    pass

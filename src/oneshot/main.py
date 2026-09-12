@@ -1,9 +1,20 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-from oneshot.api import screenplays, scenes, shots, export
+from oneshot.api import export, projects, scenes, screenplays, shots
+from oneshot.db import init_db
 
-app = FastAPI(title="OneShot", version="0.1.0")
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="OneShot", version="0.1.0", lifespan=lifespan)
+
+app.include_router(projects.router)
 app.include_router(screenplays.router)
 app.include_router(scenes.router)
 app.include_router(shots.router)

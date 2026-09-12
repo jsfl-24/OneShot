@@ -1,9 +1,14 @@
 import os
+from pathlib import Path
 
 
 class Settings:
     PROJECT_NAME: str = "OneShot"
     VERSION: str = "0.1.0"
+
+    # Database
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///oneshot.db")
+    UPLOAD_DIR: Path = Path(os.getenv("UPLOAD_DIR", "uploads"))
 
     # LLM
     LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "ollama")

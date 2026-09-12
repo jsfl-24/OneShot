@@ -1,6 +1,7 @@
 """Scene API routes."""
 
 from fastapi import APIRouter
+
 from oneshot.schemas import Scene, SceneResponse
 from oneshot.services import scene_service
 

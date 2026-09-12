@@ -1,6 +1,6 @@
 """Tests for Pydantic schemas."""
 
-from oneshot.schemas import Shot, ShotType, CameraAngle, CameraMovement, ShotStatus
+from oneshot.schemas import CameraAngle, CameraMovement, Shot, ShotStatus, ShotType
 
 
 def test_shot_creation():
