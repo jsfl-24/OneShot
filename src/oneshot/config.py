@@ -14,14 +14,15 @@ class Settings:
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///oneshot.db")
     UPLOAD_DIR: Path = Path(os.getenv("UPLOAD_DIR", "uploads"))
 
-    # LLM — choose "ollama" (local) or "huggingface" (online) per deployment/development
-    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "ollama")
+    # LLM — choose "ollama" (local) or "huggingface" (online) per deployment/development.
+    # Default: huggingface (online) for development; switch to "ollama" for local deployment.
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "huggingface")
     LLM_MODEL: str = os.getenv("LLM_MODEL", "gemma4:4b")
     LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.7"))
     LLM_MAX_TOKENS: int = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 
     # Embeddings (for RAG) — choose "ollama" (local) or "huggingface" (online)
-    EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "ollama")
+    EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "huggingface")
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
     EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", "768"))
 
@@ -31,11 +32,11 @@ class Settings:
     # Ollama (local)
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
-    # Hugging Face (online, development-only)
+    # Hugging Face (online, development-only; Inference Providers router)
     HF_TOKEN: str | None = os.getenv("HF_TOKEN")
-    HF_BASE_URL: str = os.getenv("HF_BASE_URL", "https://api-inference.huggingface.co")
-    HF_LLM_MODEL: str = os.getenv("HF_LLM_MODEL", "google/gemma-4-e4b")
-    HF_EMBEDDING_MODEL: str = os.getenv("HF_EMBEDDING_MODEL", "nomic-ai/nomic-embed-text-v1.5")
+    HF_BASE_URL: str = os.getenv("HF_BASE_URL", "https://router.huggingface.co")
+    HF_LLM_MODEL: str = os.getenv("HF_LLM_MODEL", "google/gemma-3-4b-it")
+    HF_EMBEDDING_MODEL: str = os.getenv("HF_EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
 
 
 settings = Settings()

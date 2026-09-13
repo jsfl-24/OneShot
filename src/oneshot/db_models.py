@@ -41,4 +41,9 @@ class Scene(SQLModel, table=True):
     location: str
     time_of_day: str | None = None
     raw_text: str
+    characters: str = Field(default="[]")
+    actions: str = Field(default="[]")
+    dialogue: str = Field(default="[]")
+    narrative_context: str | None = None
+    analyzed: bool = Field(default=False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

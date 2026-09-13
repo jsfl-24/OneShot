@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OneShot — Production Test Bench</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div>
+        <h1 class="masthead-title">OneShot</h1>
+        <p class="masthead-sub">Production test bench — screenplay ingestion and scene detection</p>
+      </div>
+      <div class="health-chip" id="health-chip" title="Current LLM provider and model">
+        <span class="health-dot" aria-hidden="true"></span>
+        <span id="health-text">checking…</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="error-banner" id="error-banner" hidden></div>
+
+  <main class="pipeline">
+    <section class="panel" data-step="1">
+      <h2 class="panel-title">Projects</h2>
+      <p class="panel-note">A project owns its screenplays, scenes, and later the shot plan.</p>
+
+      <form id="project-form" class="inline-form">
+        <input type="text" id="project-name" placeholder="Project name" required>
+        <input type="text" id="project-desc" placeholder="Short description (optional)">
+        <button type="submit" class="primary">Create project</button>
+      </form>
+
+      <ul id="project-list" class="entry-list" aria-label="Projects"></ul>
+      <p id="project-empty" class="empty-state">No projects yet. Create one to begin.</p>
+    </section>
+
+    <section class="panel" data-step="2" aria-busy="false">
+      <h2 class="panel-title">Screenplays</h2>
+      <p class="panel-note" id="screenplay-note">Select a project first.</p>
+
+      <form id="upload-form" class="inline-form">
+        <input type="file" id="screenplay-file" accept=".pdf,.docx,.txt" required>
+        <button type="submit" class="primary">Upload screenplay</button>
+      </form>
+
+      <ul id="screenplay-list" class="entry-list" aria-label="Screenplays"></ul>
+      <p id="screenplay-empty" class="empty-state">Upload a screenplay to begin.</p>
+    </section>
+
+    <section class="panel" data-step="3">
+      <h2 class="panel-title">Scenes</h2>
+      <p class="panel-note" id="scene-note">Select a screenplay to see its detected scenes.</p>
+
+      <div id="scene-list" class="scene-list"></div>
+      <p id="scene-empty" class="empty-state">No scenes to show.</p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

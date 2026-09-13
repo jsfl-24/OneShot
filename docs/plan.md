@@ -23,9 +23,9 @@ Build a local-first, AI-assisted filmmaking pre-production system that ingests s
 | DOCX Extraction    | python-docx                                |
 | Vector DB          | Qdrant                                     |
 | LLM (deployment)   | Ollama via local serving — Gemma 4 E4B     |
-| LLM (development)  | Hugging Face online API (Gemma 4 E4B) — dev-only convenience |
+| LLM (development)  | Hugging Face Inference Providers (router) — `google/gemma-3-4b-it` (default) |
 | RAG Embeddings (deployment) | Ollama (nomic-embed-text)          |
-| RAG Embeddings (development) | Hugging Face online embeddings API — dev-only convenience |
+| RAG Embeddings (development) | Hugging Face Inference Providers — `BAAI/bge-base-en-v1.5` (768-dim, matches nomic) |
 | Version Control    | Git + GitHub                               |
 
 ---
@@ -79,21 +79,24 @@ Build a local-first, AI-assisted filmmaking pre-production system that ingests s
 
 ## Phase 3: Structured Scene Understanding
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 ### Goals
 Extract structured data from raw scene text using the LLM: characters, actions, dialogue, and narrative context.
 
 ### Tasks
-- [ ] Design and test the scene analysis prompt (`ai/prompts.py` — expand `SCENE_ANALYSIS_PROMPT`)
-- [ ] Define a Pydantic model for structured scene analysis output (characters, actions, dialogue, narrative_context)
-- [ ] Wire `ai/scene_analyzer.py` to return validated Pydantic output (not raw dict)
-- [ ] Implement `scene_service.py` — analyze scene, validate, return structured result
-- [ ] Flesh out `POST /scenes/analyze` endpoint — accept scene_id, run analysis, return result
-- [ ] Persist analyzed scene data back to the Scene table (add columns: characters, actions, dialogue, narrative_context)
-- [ ] Generate a DB migration for the new Scene columns
-- [ ] Add tests: scene analyzer unit test, service test, API test
-- [ ] Verify end-to-end: upload screenplay -> detect scenes -> analyze a scene -> return structured data
+- [x] Design and test the scene analysis prompt (`ai/prompts.py` — expand `SCENE_ANALYSIS_PROMPT`)
+- [x] Define a Pydantic model for structured scene analysis output (characters, actions, dialogue, narrative_context)
+- [x] Wire `ai/scene_analyzer.py` to return validated Pydantic output (not raw dict)
+- [x] Implement `scene_service.py` — analyze scene, validate, return structured result
+- [x] Flesh out `POST /scenes/{scene_id}/analyze` endpoint — accept scene_id, run analysis, return result
+- [x] Persist analyzed scene data back to the Scene table (add columns: characters, actions, dialogue, narrative_context)
+- [x] Generate a DB migration for the new Scene columns
+- [x] Add tests: scene analyzer unit test, service test, API test
+- [x] Verify end-to-end: upload screenplay -> detect scenes -> analyze a scene -> return structured data
+- [x] LLM scene detection: new scenes recovered (typo tolerance) and merged, ordered by document position
+- [x] `POST /screenplays/{id}/detect-scenes` and `POST /screenplays/{id}/full-pipeline` endpoints
+- [x] Temp UI buttons: per-scene Analyze, per-screenplay LLM Detection / Full Pipeline
 
 ---
 
@@ -232,9 +235,11 @@ The backend is ready for frontend when it can:
 | `POST /screenplays/projects/{id}/upload`    | 2     | DONE    |
 | `GET /screenplays/projects/{id}`            | 2     | DONE    |
 | `GET /screenplays/{id}`                     | 2     | DONE    |
-| `GET /screenplays/{id}/scenes`              | 2     | DONE    |
-| `POST /scenes/analyze`                      | 3     | TODO    |
-| `GET /scenes/{id}`                          | 3     | TODO    |
+| `GET /screenplays/{id}/scenes`       | 2     | DONE    |
+| `POST /scenes/{id}/analyze`          | 3     | DONE    |
+| `GET /scenes/{id}`                   | 3     | DONE    |
+| `POST /screenplays/{id}/detect-scenes` | 3   | DONE    |
+| `POST /screenplays/{id}/full-pipeline` | 3   | DONE    |
 | `POST /shots/generate`                      | 4     | STUB    |
 | `GET /shots/{id}`                           | 5     | TODO    |
 | `GET /scenes/{id}/shots`                    | 5     | TODO    |
@@ -256,6 +261,6 @@ The backend is ready for frontend when it can:
 - **LLM is replaceable** — the final model is not permanently selected. Keep `ai/llm.py` as the single abstraction point.
 - **QLoRA fine-tuning** is optional and only considered after the baseline pipeline works and has been evaluated.
 - **RAG is mandatory** — cinematic knowledge retrieval must be part of the shot-generation pipeline; the pipeline is not complete without it.
-- **LLM/RAG provider by environment** — development may use the Hugging Face online API (Gemma 4 E4B); deployment must use local Ollama (Gemma 4 E4B, `nomic-embed-text`). Provider selection is config-driven only.
+- **LLM/RAG provider by environment** — development defaults to the Hugging Face Inference Providers router (LLM `google/gemma-3-4b-it`, embeddings `BAAI/bge-base-en-v1.5`); deployment must use local Ollama (Gemma 4 E4B, `nomic-embed-text`). The HF router's gemma-4 models are reasoning-focused, so the JSON-strict default is gemma-3-4b-it. Provider selection is config-driven only.
 - **Storyboard failures must not corrupt the shot plan.**
 - **Privacy first** — no external AI/API calls unless the user explicitly configures them.

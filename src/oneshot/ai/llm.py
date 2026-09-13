@@ -110,26 +110,24 @@ async def _generate_huggingface(
 
     async with _client() as client:
         response = await client.post(
-            f"{settings.HF_BASE_URL}/models/{model}",
+            f"{settings.HF_BASE_URL}/v1/chat/completions",
             headers={"Authorization": f"Bearer {token}"},
             json={
-                "inputs": prompt,
-                "parameters": {
-                    "temperature": temperature,
-                    "max_new_tokens": max_tokens,
-                    "return_full_text": False,
-                },
-                "options": {"wait_for_model": True},
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
             },
         )
         response.raise_for_status()
     data = response.json()
 
-    if isinstance(data, list) and data:
-        text = data[0].get("generated_text", "")
-    elif isinstance(data, dict):
-        text = data.get("generated_text", "")
-    else:
+    try:
+        message = data["choices"][0].get("message", {})
+        text = (message.get("content") or "").strip()
+        if not text:
+            text = (message.get("reasoning") or "").strip()
+    except (KeyError, IndexError, TypeError):
         raise ValueError(f"Hugging Face returned an unexpected payload: {data}")
 
     if not text:
@@ -164,13 +162,15 @@ async def _embed_huggingface(text: str, model: str) -> list[float]:
 
     async with _client() as client:
         response = await client.post(
-            f"{settings.HF_BASE_URL}/pipeline/feature-extraction/{model}",
+            f"{settings.HF_BASE_URL}/hf-inference/models/{model}/pipeline/feature-extraction",
             headers={"Authorization": f"Bearer {token}"},
             json={"inputs": text, "options": {"wait_for_model": True}},
         )
         response.raise_for_status()
     data = response.json()
 
-    if isinstance(data, list) and data and isinstance(data[0], (int, float)):
+    if isinstance(data, list) and data:
+        if isinstance(data[0], list):
+            return [float(x) for x in data[0]]
         return [float(x) for x in data]
     raise ValueError(f"Hugging Face returned an unexpected embedding payload: {data}")

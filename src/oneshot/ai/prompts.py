@@ -1,28 +1,52 @@
-"""Prompt templates for scene analysis and shot generation."""
+"""Prompt templates for scene detection, scene analysis, and shot generation."""
+
+SCENE_DETECTION_PROMPT = """You are a screenplay editor. Identify every scene in the screenplay text below.
+
+A new scene begins when:
+- The location changes
+- The time of day changes
+- There is a time jump
+- The characters present change significantly
+
+Some scenes may have typos in their headings (e.g. "INT.", "EXT", "EEXT.", "IN T.COFFEE") or may be missing a heading entirely. Detect them anyway.
+
+Return ONLY valid JSON:
+{{
+  "scenes": [
+    {{"line_number": 1, "heading": "INT. COFFEE SHOP - DAY", "type": "new"}},
+    {{"line_number": 15, "heading": "EXT. STREET - NIGHT", "type": "correction", "original": "EXT. STREE - NIGHT"}}
+  ]
+}}
+
+- line_number: 1-based line where the scene starts in the text
+- heading: standardized heading (INT./EXT. LOCATION - TIME OF DAY)
+- type: "new" if this scene was missing entirely, "correction" if it fixes a heading that already looks like a scene heading but has typos
+- original: the original typo heading, only for corrections
+
+Screenplay text:
+{text}
+"""
+
 
 SCENE_ANALYSIS_PROMPT = """You are a professional screenwriting analyst.
 
-Given the following screenplay text, extract:
-- Scene heading
-- Location
-- Time of day
-- Characters present
-- Actions (what happens)
-- Dialogue (what is said)
-- Narrative context (mood, tone, subtext)
+Given the following screenplay scene, extract structured data.
 
-Return as valid JSON with these fields:
-{
-  "heading": "...",
-  "location": "...",
-  "time_of_day": "...",
-  "characters": [...],
-  "actions": [...],
-  "dialogue": [...],
-  "narrative_context": "..."
-}
+Return ONLY valid JSON:
+{{
+  "characters": ["JANE", "MARK"],
+  "actions": ["Jane sips her coffee."],
+  "dialogue": ["JANE: I cannot believe you are late again."],
+  "narrative_context": "Tense reunion; subdued mood."
+}}
 
-Screenplay text:
+Rules:
+- characters: ALL-CAPS character names present in the scene
+- actions: what happens visually (not dialogue)
+- dialogue: lines prefixed with the character name
+- narrative_context: 1-2 sentences on mood, tone, and subtext
+
+Scene text:
 {text}
 """
 

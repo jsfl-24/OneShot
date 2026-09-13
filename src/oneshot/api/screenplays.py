@@ -2,15 +2,18 @@
 
 from typing import Annotated
 
+import httpx
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from oneshot.api.deps import DbSession
+from oneshot.api.errors import http_error
 from oneshot.schemas import (
     SceneListResponse,
     SceneRead,
     ScreenplayResponse,
 )
-from oneshot.services import screenplay_service
+from oneshot.services import pipeline_service, scene_service, screenplay_service
+from oneshot.services.errors import NotFoundError
 
 router = APIRouter(prefix="/screenplays", tags=["screenplays"])
 
@@ -81,16 +84,39 @@ def list_scenes(screenplay_id: int, session: DbSession):
     scenes = screenplay_service.list_scenes(screenplay_id, session)
     return SceneListResponse(
         screenplay_id=screenplay_id,
-        scenes=[
-            SceneRead(
-                id=s.id,
-                screenplay_id=s.screenplay_id,
-                scene_number=s.scene_number,
-                heading=s.heading,
-                location=s.location,
-                time_of_day=s.time_of_day,
-                raw_text=s.raw_text,
-            )
-            for s in scenes
-        ],
+        scenes=[SceneRead(**scene_service.to_dict(s)) for s in scenes],
+    )
+
+
+@router.post("/{screenplay_id}/detect-scenes", response_model=SceneListResponse)
+async def detect_scenes(screenplay_id: int, session: DbSession, provider: str | None = None):
+    """Run LLM scene detection and merge with regex-detected scenes."""
+    try:
+        scenes = await scene_service.detect_scenes_llm_and_merge(
+            screenplay_id, session, provider=provider
+        )
+    except HTTPException:
+        raise
+    except (NotFoundError, ValueError, RuntimeError, httpx.RequestError, httpx.HTTPStatusError) as exc:
+        raise http_error(exc)
+    return SceneListResponse(
+        screenplay_id=screenplay_id,
+        scenes=[SceneRead(**scene_service.to_dict(s)) for s in scenes],
+    )
+
+
+@router.post("/{screenplay_id}/full-pipeline", response_model=SceneListResponse)
+async def full_pipeline(screenplay_id: int, session: DbSession, provider: str | None = None):
+    """LLM-detect scenes then analyze all of them in one stretch."""
+    try:
+        scenes = await pipeline_service.run_full_pipeline(
+            screenplay_id, session, provider=provider
+        )
+    except HTTPException:
+        raise
+    except (NotFoundError, ValueError, RuntimeError, httpx.RequestError, httpx.HTTPStatusError) as exc:
+        raise http_error(exc)
+    return SceneListResponse(
+        screenplay_id=screenplay_id,
+        scenes=[SceneRead(**scene_service.to_dict(s)) for s in scenes],
     )

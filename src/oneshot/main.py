@@ -1,6 +1,10 @@
+"""OneShot FastAPI application."""
+
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from oneshot.api import export, projects, scenes, screenplays, shots
 from oneshot.config import settings
@@ -20,6 +24,12 @@ app.include_router(screenplays.router)
 app.include_router(scenes.router)
 app.include_router(shots.router)
 app.include_router(export.router)
+
+app.mount(
+    "/ui",
+    StaticFiles(directory=Path(__file__).parent / "ui", html=True),
+    name="ui",
+)
 
 
 @app.get("/health")

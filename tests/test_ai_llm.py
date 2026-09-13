@@ -28,28 +28,50 @@ def _patch_client(monkeypatch):
     return captured
 
 
-async def test_generate_ollama_default(monkeypatch, _patch_client):
+async def test_generate_ollama(monkeypatch, _patch_client):
     _patch_client["default_response"] = {"response": "generated text"}
-    text = await llm.generate("hello")
+    text = await llm.generate("hello", provider="ollama")
     assert text == "generated text"
     assert _patch_client["url"].endswith("/api/generate")
     assert _patch_client["body"]["prompt"] == "hello"
-    assert _patch_client["body"]["model"] == "gemma4:4b"
+    assert _patch_client["body"]["model"] == "gemma4:latest"
 
 
 async def test_generate_ollama_uses_model_override(monkeypatch, _patch_client):
     _patch_client["default_response"] = {"response": "ok"}
-    await llm.generate("hi", model="llama3")
+    await llm.generate("hi", model="llama3", provider="ollama")
     assert _patch_client["body"]["model"] == "llama3"
+
+
+async def test_generate_default_provider_is_huggingface(monkeypatch, _patch_client):
+    monkeypatch.setattr(llm.settings, "HF_TOKEN", "hf_test_token")
+    _patch_client["default_response"] = {
+        "choices": [{"message": {"content": "default answer"}}]
+    }
+    text = await llm.generate("hello")
+    assert text == "default answer"
+    assert "https://router.huggingface.co/v1/chat/completions" in _patch_client["url"]
 
 
 async def test_generate_huggingface_online(monkeypatch, _patch_client):
     monkeypatch.setattr(llm.settings, "HF_TOKEN", "hf_test_token")
-    _patch_client["default_response"] = [{"generated_text": "online answer"}]
+    _patch_client["default_response"] = {
+        "choices": [{"message": {"content": "online answer"}}]
+    }
     text = await llm.generate("hello", provider="huggingface")
     assert text == "online answer"
-    assert "api-inference.huggingface.co/models/" in _patch_client["url"]
+    assert "https://router.huggingface.co/v1/chat/completions" in _patch_client["url"]
     assert _patch_client["headers"]["authorization"] == "Bearer hf_test_token"
+    assert _patch_client["body"]["messages"][0]["content"] == "hello"
+
+
+async def test_generate_huggingface_falls_back_to_reasoning(monkeypatch, _patch_client):
+    monkeypatch.setattr(llm.settings, "HF_TOKEN", "hf_test_token")
+    _patch_client["default_response"] = {
+        "choices": [{"message": {"content": None, "reasoning": "thinking..."}}]
+    }
+    text = await llm.generate("hello", provider="huggingface")
+    assert text == "thinking..."
 
 
 async def test_generate_huggingface_missing_token(monkeypatch, _patch_client):
@@ -65,7 +87,7 @@ async def test_generate_unknown_provider():
 
 async def test_embed_ollama(_patch_client):
     _patch_client["default_response"] = {"embeddings": [[0.1, 0.2, 0.3]]}
-    vector = await llm.embed("text")
+    vector = await llm.embed("text", provider="ollama")
     assert vector == [0.1, 0.2, 0.3]
     assert _patch_client["url"].endswith("/api/embed")
 
@@ -75,7 +97,7 @@ async def test_embed_huggingface_online(monkeypatch, _patch_client):
     _patch_client["default_response"] = [0.4, 0.5, 0.6]
     vector = await llm.embed("text", provider="huggingface")
     assert vector == [0.4, 0.5, 0.6]
-    assert "pipeline/feature-extraction/" in _patch_client["url"]
+    assert "hf-inference/models/" in _patch_client["url"]
     assert _patch_client["headers"]["authorization"] == "Bearer hf_test_token"
 
 

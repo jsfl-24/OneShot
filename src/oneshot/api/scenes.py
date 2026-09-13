@@ -1,19 +1,40 @@
 """Scene API routes."""
 
-from fastapi import APIRouter
+import httpx
+from fastapi import APIRouter, HTTPException
 
-from oneshot.schemas import Scene, SceneResponse
+from oneshot.api.deps import DbSession
+from oneshot.api.errors import http_error
+from oneshot.schemas import SceneRead
 from oneshot.services import scene_service
+from oneshot.services.errors import NotFoundError
 
 router = APIRouter(prefix="/scenes", tags=["scenes"])
 
 
-@router.post("/analyze", response_model=SceneResponse)
-async def analyze_scene(text: str):
-    """Analyze screenplay text and return structured scene data."""
-    result = await scene_service.analyze(text)
-    # TODO: map result to Scene model, persist
-    return SceneResponse(
-        scenes=[Scene(id="todo", scene_number=1, heading="TODO", location="TODO", **result)],
-        screenplay_id="todo",
-    )
+def _to_read(data: dict) -> SceneRead:
+    return SceneRead(**data)
+
+
+@router.post("/{scene_id}/analyze", response_model=SceneRead)
+async def analyze_scene(
+    scene_id: int,
+    session: DbSession,
+    provider: str | None = None,
+):
+    """Analyze a single scene with the LLM and persist structured data."""
+    try:
+        scene = await scene_service.analyze_scene(scene_id, session, provider=provider)
+    except HTTPException:
+        raise
+    except (NotFoundError, ValueError, RuntimeError, httpx.RequestError, httpx.HTTPStatusError) as exc:
+        raise http_error(exc)
+    return _to_read(scene_service.to_dict(scene))
+
+
+@router.get("/{scene_id}", response_model=SceneRead)
+def get_scene(scene_id: int, session: DbSession):
+    scene = scene_service.get_scene(scene_id, session)
+    if scene is None:
+        raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
+    return _to_read(scene_service.to_dict(scene))

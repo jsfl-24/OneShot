@@ -72,6 +72,13 @@ class ScreenplayResponse(BaseModel):
 
 # --- Scene ---
 
+class SceneAnalysisResult(BaseModel):
+    characters: list[str]
+    actions: list[str]
+    dialogue: list[str]
+    narrative_context: str
+
+
 class Scene(BaseModel):
     id: str
     scene_number: int
@@ -94,6 +101,11 @@ class SceneRead(BaseModel):
     location: str
     time_of_day: str | None = None
     raw_text: str
+    characters: list[str] = []
+    actions: list[str] = []
+    dialogue: list[str] = []
+    narrative_context: str | None = None
+    analyzed: bool = False
 
 
 class SceneListResponse(BaseModel):
