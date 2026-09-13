@@ -1,5 +1,6 @@
 """Screenplay ingestion and parsing service."""
 
+import json
 import shutil
 import uuid
 from pathlib import Path
@@ -7,6 +8,7 @@ from pathlib import Path
 from fastapi import UploadFile
 from sqlmodel import Session, select
 
+from oneshot.ai.screenplay_analyzer import analyze_screenplay as analyze_screenplay_ai
 from oneshot.config import settings
 from oneshot.db_models import Project, Scene, Screenplay
 from oneshot.parsers.document import extract
@@ -94,3 +96,30 @@ def list_scenes(screenplay_id: int, session: Session) -> list[Scene]:
         .order_by(Scene.scene_number)
     )
     return list(session.exec(statement).all())
+
+
+def _to_json(value: list[str]) -> str:
+    return json.dumps(value)
+
+
+async def analyze_screenplay(
+    screenplay_id: int,
+    session: Session,
+    provider: str | None = None,
+) -> Screenplay:
+    """Run LLM analysis on a screenplay and persist the structured metadata."""
+    screenplay = session.get(Screenplay, screenplay_id)
+    if screenplay is None:
+        from oneshot.services.errors import NotFoundError
+        raise NotFoundError(f"Screenplay {screenplay_id} not found")
+
+    result = await analyze_screenplay_ai(screenplay.extracted_text, provider=provider)
+    screenplay.one_liner = result.one_liner
+    screenplay.genre = result.genre
+    screenplay.story_abstract = result.story_abstract
+    screenplay.characters = _to_json(result.characters)
+    screenplay.analyzed = True
+    session.add(screenplay)
+    session.commit()
+    session.refresh(screenplay)
+    return screenplay

@@ -1,9 +1,9 @@
-"""Full pipeline: LLM scene detection + structured analysis of all scenes."""
+"""Full pipeline: LLM scene detection + structured analysis of all scenes + film metadata."""
 
 from sqlmodel import Session
 
 from oneshot.db_models import Scene
-from oneshot.services import scene_service
+from oneshot.services import scene_service, screenplay_service
 
 
 async def run_full_pipeline(
@@ -11,7 +11,7 @@ async def run_full_pipeline(
     session: Session,
     provider: str | None = None,
 ) -> list[Scene]:
-    """Detect scenes with LLM, then analyze every scene, and return them."""
+    """Detect scenes with LLM, analyze every scene, extract film metadata, and return scenes."""
     scenes = await scene_service.detect_scenes_llm_and_merge(
         screenplay_id, session, provider=provider
     )
@@ -19,5 +19,7 @@ async def run_full_pipeline(
     for scene in scenes:
         if not scene.analyzed:
             await scene_service.analyze_scene(scene.id, session, provider=provider)
+
+    await screenplay_service.analyze_screenplay(screenplay_id, session, provider=provider)
 
     return scene_service.list_scenes(screenplay_id, session)

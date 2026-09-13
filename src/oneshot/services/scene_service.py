@@ -79,6 +79,24 @@ def _normalize_heading(heading: str) -> str:
     return heading.upper().replace(".", "").strip()
 
 
+def _is_valid_heading(heading: str) -> bool:
+    """Check if a heading looks like a real scene heading (INT./EXT. prefix + dash)."""
+    upper = heading.upper().strip()
+    has_prefix = any(upper.startswith(p) for p in ("INT", "EXT", "I/E", "I.E"))
+    has_dash = " - " in upper
+    return has_prefix and has_dash
+
+
+def _text_overlap(a: str, b: str) -> bool:
+    """Check if two raw texts overlap significantly."""
+    a_lines = set(a.strip().splitlines())
+    b_lines = set(b.strip().splitlines())
+    if not a_lines or not b_lines:
+        return False
+    overlap = a_lines & b_lines
+    return len(overlap) / min(len(a_lines), len(b_lines)) > 0.7
+
+
 async def detect_scenes_llm_and_merge(
     screenplay_id: int,
     session: Session,
@@ -99,7 +117,7 @@ async def detect_scenes_llm_and_merge(
     new_scenes: list[dict] = []
     for det in sorted(detections, key=lambda d: d.get("line_number", 0)):
         heading = det.get("heading", "").strip()
-        if not heading:
+        if not heading or not _is_valid_heading(heading):
             continue
 
         if det.get("type") == "correction":
@@ -128,6 +146,9 @@ async def detect_scenes_llm_and_merge(
 
         raw_text = "\n".join(lines[start:end]).strip()
         if not raw_text or raw_text in existing_raw:
+            continue
+
+        if any(_text_overlap(raw_text, existing) for existing in existing_raw):
             continue
 
         parsed = parse_heading_re(heading) or {"location": heading, "time_of_day": None}

@@ -33,6 +33,11 @@ def test_parse_heading_rejects_action_line():
     assert parse_heading("The rain falls hard.") is None
 
 
+def test_classify_rejects_short_location():
+    classified = classify_line("INT. A", 1, LineKind.BLANK)
+    assert classified.kind != LineKind.HEADING
+
+
 def test_classify_character_name():
     classified = classify_line("JANE", 5, LineKind.ACTION)
     assert classified.kind == LineKind.CHARACTER
@@ -98,3 +103,15 @@ def test_scene_numbering_increments(sample_screenplay_path):
     text = sample_screenplay_path.read_text(encoding="utf-8")
     blocks = detect_scenes(text)
     assert [b.scene_number for b in blocks] == [1, 2, 3, 4]
+
+
+def test_rejects_false_heading_without_dash():
+    text = (
+        "INT. COFFEE SHOP - DAY\n\n"
+        "The barista makes a latte.\n\n"
+        "INT. A\n\n"
+        "This should not be a new scene.\n"
+    )
+    blocks = detect_scenes(text)
+    assert len(blocks) == 1
+    assert blocks[0].heading == "INT. COFFEE SHOP - DAY"

@@ -75,3 +75,26 @@ Generate a list of shots. Each shot must include:
 
 Return as valid JSON array of shots.
 """
+
+
+SCREENPLAY_ANALYSIS_PROMPT = """You are a professional screenplay analyst.
+
+Given the full text of a screenplay, extract the following metadata.
+
+Return ONLY valid JSON:
+{{
+  "one_liner": "A single sentence summarizing the entire film.",
+  "genre": "The primary genre (e.g. Thriller, Romance, Sci-Fi, Drama, Comedy, Horror).",
+  "story_abstract": "A 2-4 sentence abstract covering the main story arc, central conflict, and resolution.",
+  "characters": ["CHARACTER NAME 1", "CHARACTER NAME 2"]
+}}
+
+Rules:
+- one_liner: one sentence, no more than 30 words.
+- genre: a single genre label.
+- story_abstract: concise summary of the plot, not a scene-by-scene breakdown.
+- characters: ALL major character names in ALL-CAPS, listed in order of importance.
+
+Screenplay text:
+{text}
+"""

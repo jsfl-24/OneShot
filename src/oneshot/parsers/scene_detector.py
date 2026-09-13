@@ -25,7 +25,12 @@ _SCENE_HEADING_RE = re.compile(
     re.IGNORECASE,
 )
 
-_TIME_TOKEN_RE = re.compile(r"[-–—]\s*([A-Za-z0-9].{0,40})$")
+_TIME_TOKEN_RE = re.compile(r"\s+-\s+([A-Za-z0-9].{0,40})$")
+
+_HEADING_LOCATION_RE = re.compile(
+    r"^(INT\.?|EXT\.?|INT\.?/EXT\.?|I\.?/E\.?|INT\.?-EXT\.?)\s+.{2,}$",
+    re.IGNORECASE,
+)
 
 _ALL_CAPS_RE = re.compile(r"^[A-Z0-9'.\-&]{2,}\s*$")
 
@@ -78,7 +83,7 @@ def classify_line(line: str, line_number: int, prev_kind: LineKind) -> Classifie
     if not text:
         return ClassifiedLine(LineKind.BLANK, "", line_number)
 
-    if parse_heading(text) is not None:
+    if _HEADING_LOCATION_RE.match(text) is not None:
         return ClassifiedLine(LineKind.HEADING, text, line_number)
 
     if text.startswith("(") and text.endswith(")") and len(text) < 60:

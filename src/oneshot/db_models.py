@@ -27,6 +27,11 @@ class Screenplay(SQLModel, table=True):
     format: str
     source_path: str
     extracted_text: str
+    one_liner: str | None = None
+    genre: str | None = None
+    story_abstract: str | None = None
+    characters: str = Field(default="[]")
+    analyzed: bool = Field(default=False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 

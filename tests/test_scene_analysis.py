@@ -1,10 +1,10 @@
-"""Tests for LLM scene detection and structured scene analysis."""
+"""Tests for LLM scene detection, structured scene analysis, and screenplay analysis."""
 
 import json
 
 import pytest
 
-from oneshot.schemas import SceneAnalysisResult
+from oneshot.schemas import SceneAnalysisResult, ScreenplayAnalysisResult
 
 SAMPLE = (
     "INT. COFFEE SHOP - DAY\n"
@@ -59,6 +59,38 @@ async def test_analyze_scene_rejects_invalid_json(monkeypatch):
         await scene_analyzer.analyze_scene(SAMPLE)
 
 
+async def test_analyze_screenplay_returns_validated_result(monkeypatch):
+    from oneshot.ai import screenplay_analyzer
+
+    async def fake_generate(prompt, **kwargs):
+        return json.dumps(
+            {
+                "one_liner": "A couple confronts their fractured relationship over one night.",
+                "genre": "Drama",
+                "story_abstract": "Jane and Mark meet in a coffee shop to discuss their failing relationship. A tense conversation leads them through the city streets. By dawn, they reach an uncertain resolution.",
+                "characters": ["JANE", "MARK"],
+            }
+        )
+
+    monkeypatch.setattr(screenplay_analyzer, "generate", fake_generate)
+    result = await screenplay_analyzer.analyze_screenplay(SAMPLE)
+    assert isinstance(result, ScreenplayAnalysisResult)
+    assert result.one_liner.startswith("A couple")
+    assert result.genre == "Drama"
+    assert len(result.characters) == 2
+
+
+async def test_analyze_screenplay_rejects_invalid_json(monkeypatch):
+    from oneshot.ai import screenplay_analyzer
+
+    async def fake_generate(prompt, **kwargs):
+        return "not json"
+
+    monkeypatch.setattr(screenplay_analyzer, "generate", fake_generate)
+    with pytest.raises(ValueError, match="invalid JSON"):
+        await screenplay_analyzer.analyze_screenplay(SAMPLE)
+
+
 def _upload(client, filename="tests/fixtures/sample_screenplay.txt", fname="sample.txt"):
     project = client.post("/projects", json={"name": "P"}).json()
     with open(filename, "rb") as fh:
@@ -75,6 +107,23 @@ def test_uploaded_scenes_start_unanalyzed(client):
     assert len(scenes) == 4
     assert all(not s["analyzed"] for s in scenes)
     assert all(s["characters"] == [] for s in scenes)
+
+
+def test_scene_list_response_includes_total_scenes(client):
+    _, upload = _upload(client)
+    response = client.get(f"/screenplays/{upload['id']}/scenes").json()
+    assert response["total_scenes"] == 4
+    assert len(response["scenes"]) == 4
+
+
+def test_screenplay_response_includes_new_fields(client):
+    _, upload = _upload(client)
+    screenplay = client.get(f"/screenplays/{upload['id']}").json()
+    assert screenplay["one_liner"] is None
+    assert screenplay["genre"] is None
+    assert screenplay["story_abstract"] is None
+    assert screenplay["characters"] == []
+    assert screenplay["analyzed"] is False
 
 
 async def test_analyze_scene_persists(client, monkeypatch):
@@ -103,6 +152,31 @@ async def test_analyze_scene_persists(client, monkeypatch):
 
     again = client.get(f"/scenes/{scene['id']}")
     assert again.json()["analyzed"] is True
+
+
+async def test_analyze_screenplay_persists(client, monkeypatch):
+    from oneshot.ai import screenplay_analyzer
+
+    async def fake_generate(prompt, **kwargs):
+        return json.dumps(
+            {
+                "one_liner": "A dramatic night in the city.",
+                "genre": "Drama",
+                "story_abstract": "Two people navigate their relationship.",
+                "characters": ["JANE", "MARK"],
+            }
+        )
+
+    monkeypatch.setattr(screenplay_analyzer, "generate", fake_generate)
+
+    _, upload = _upload(client)
+    response = client.post(f"/screenplays/{upload['id']}/analyze")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["analyzed"] is True
+    assert body["one_liner"] == "A dramatic night in the city."
+    assert body["genre"] == "Drama"
+    assert body["characters"] == ["JANE", "MARK"]
 
 
 def test_detect_scenes_endpoint_returns_502_on_provider_error(client, monkeypatch):
@@ -189,8 +263,31 @@ async def test_detect_scenes_endpoint_corrects_typo(client, monkeypatch):
     assert len(response.json()["scenes"]) == 4
 
 
+async def test_detect_scenes_filters_invalid_headings(client, monkeypatch):
+    from oneshot.ai import scene_detector_llm
+
+    async def fake_generate(prompt, **kwargs):
+        return json.dumps(
+            {
+                "scenes": [
+                    {"line_number": 1, "heading": "INT. COFFEE SHOP - DAY", "type": "new"},
+                    {"line_number": 5, "heading": "INT. PRODUCER", "type": "new"},
+                ]
+            }
+        )
+
+    monkeypatch.setattr(scene_detector_llm, "generate", fake_generate)
+
+    _, upload = _upload(client)
+    response = client.post(f"/screenplays/{upload['id']}/detect-scenes")
+    assert response.status_code == 200
+    scenes = response.json()["scenes"]
+    headings = [s["heading"] for s in scenes]
+    assert "INT. PRODUCER" not in headings
+
+
 async def test_full_pipeline_analyzes_all(client, monkeypatch):
-    from oneshot.ai import scene_analyzer, scene_detector_llm
+    from oneshot.ai import scene_analyzer, scene_detector_llm, screenplay_analyzer
 
     async def fake_detect(prompt, **kwargs):
         return json.dumps({"scenes": []})
@@ -205,8 +302,19 @@ async def test_full_pipeline_analyzes_all(client, monkeypatch):
             }
         )
 
+    async def fake_screenplay_analyze(prompt, **kwargs):
+        return json.dumps(
+            {
+                "one_liner": "A short film.",
+                "genre": "Drama",
+                "story_abstract": "A dramatic encounter.",
+                "characters": ["JANE", "MARK"],
+            }
+        )
+
     monkeypatch.setattr(scene_detector_llm, "generate", fake_detect)
     monkeypatch.setattr(scene_analyzer, "generate", fake_analyze)
+    monkeypatch.setattr(screenplay_analyzer, "generate", fake_screenplay_analyze)
 
     _, upload = _upload(client)
     response = client.post(f"/screenplays/{upload['id']}/full-pipeline")
@@ -215,6 +323,11 @@ async def test_full_pipeline_analyzes_all(client, monkeypatch):
     assert len(scenes) == 4
     assert all(s["analyzed"] for s in scenes)
     assert all(s["characters"] == ["JANE", "MARK"] for s in scenes)
+
+    screenplay = client.get(f"/screenplays/{upload['id']}").json()
+    assert screenplay["analyzed"] is True
+    assert screenplay["one_liner"] == "A short film."
+    assert screenplay["genre"] == "Drama"
 
 
 async def test_provider_query_param_passed_through(client, monkeypatch):

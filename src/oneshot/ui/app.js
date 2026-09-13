@@ -26,6 +26,8 @@
     sceneNote: $("#scene-note"),
     sceneList: $("#scene-list"),
     sceneEmpty: $("#scene-empty"),
+    screenplayMeta: $("#screenplay-meta"),
+    screenplayMetaEmpty: $("#screenplay-meta-empty"),
     uploadBtn: document.querySelector("#upload-form button"),
   };
 
@@ -85,7 +87,7 @@
       item.className = "entry-item";
       item.dataset.entryId = sp.id;
       item.innerHTML = `<span class="entry-from">${escapeHtml(sp.filename)}</span>
-        <span class="entry-meta">.${escapeHtml(sp.format)} — ${formatDate(sp.created_at)}</span>`;
+        <span class="entry-meta">.${escapeHtml(sp.format)} — ${formatDate(sp.created_at)}${sp.analyzed ? " — metadata ready" : ""}</span>`;
       item.addEventListener("click", () => selectScreenplay(sp.id));
       item.setAttribute("role", "button");
       item.tabIndex = 0;
@@ -135,8 +137,56 @@
         state.scenes = data.scenes ?? [];
         els.sceneEmpty.textContent = "No scenes detected in this screenplay.";
         renderScenes();
+        const spIdx = state.screenplays.findIndex((s) => String(s.id) === String(screenplayId));
+        if (spIdx !== -1) {
+          state.screenplays[spIdx] = await api(`/screenplays/${screenplayId}`);
+          renderScreenplayMeta();
+        }
       }
       alert(doneText);
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  function renderScreenplayMeta() {
+    els.screenplayMeta.textContent = "";
+    const sp = state.screenplays.find((s) => String(s.id) === String(state.selectedScreenplayId));
+    els.screenplayMetaEmpty.hidden = !!(sp && (sp.one_liner || sp.genre || sp.story_abstract));
+
+    if (!sp) return;
+
+    const meta = document.createElement("div");
+    meta.className = "meta-block";
+    meta.innerHTML =
+      `<div><strong>One-liner:</strong> ${escapeHtml(sp.one_liner ?? "—")}</div>` +
+      `<div><strong>Genre:</strong> ${escapeHtml(sp.genre ?? "—")}</div>` +
+      `<div><strong>Story abstract:</strong> ${escapeHtml(sp.story_abstract ?? "—")}</div>` +
+      `<div><strong>Characters:</strong> ${escapeHtml((sp.characters ?? []).join(", ") || "—")}</div>`;
+    els.screenplayMeta.appendChild(meta);
+
+    if (!sp.analyzed) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "ghost";
+      btn.textContent = "Analyze Screenplay";
+      btn.addEventListener("click", () => analyzeScreenplay(sp));
+      els.screenplayMeta.appendChild(btn);
+    } else {
+      const tag = document.createElement("span");
+      tag.className = "analyzed-tag";
+      tag.textContent = "analyzed";
+      els.screenplayMeta.appendChild(tag);
+    }
+  }
+
+  async function analyzeScreenplay(sp) {
+    clearError();
+    try {
+      const data = await api(`/screenplays/${sp.id}/analyze`, { method: "POST" });
+      const idx = state.screenplays.findIndex((s) => String(s.id) === String(data.id));
+      if (idx !== -1) state.screenplays[idx] = data;
+      renderScreenplayMeta();
     } catch (err) {
       showError(err.message);
     }
@@ -230,6 +280,9 @@
     state.screenplays = [];
     state.scenes = [];
     els.sceneList.textContent = "";
+    els.screenplayMeta.textContent = "";
+    els.screenplayMetaEmpty.hidden = false;
+    els.screenplayMetaEmpty.textContent = "Select a screenplay to see its film metadata.";
     els.sceneNote.textContent = "Select a screenplay to see its detected scenes.";
     els.screenplayEmpty.hidden = false;
     els.screenplayEmpty.textContent = "Loading screenplays…";
@@ -254,14 +307,19 @@
     const sp = state.screenplays.find((s) => String(s.id) === String(id));
     els.sceneNote.textContent = sp ? `Scenes detected in “${sp.filename}”.` : "";
     els.sceneList.textContent = "";
+    els.screenplayMeta.textContent = "";
+    els.screenplayMetaEmpty.hidden = false;
     state.scenes = [];
     els.sceneEmpty.hidden = false;
     els.sceneEmpty.textContent = "Reading scenes…";
+
+    renderScreenplayMeta();
 
     try {
       const data = await api(`/screenplays/${id}/scenes`);
       state.scenes = data.scenes ?? [];
       els.sceneEmpty.textContent = "No scenes detected in this screenplay.";
+      els.sceneNote.textContent = sp ? `${data.total_scenes} scenes detected in “${sp.filename}”.` : "";
       renderScenes();
     } catch (err) {
       state.scenes = [];
@@ -327,6 +385,7 @@
       state.screenplays.push(data);
       await selectScreenplay(data.id);
       renderScreenplays();
+      renderScreenplayMeta();
     } catch (err) {
       showError(err.message);
     } finally {

@@ -61,12 +61,24 @@ class ScreenplayUpload(BaseModel):
     content: str  # raw extracted text
 
 
+class ScreenplayAnalysisResult(BaseModel):
+    one_liner: str
+    genre: str
+    story_abstract: str
+    characters: list[str]
+
+
 class ScreenplayResponse(BaseModel):
     id: int
     project_id: int
     filename: str
     format: str
     source_path: str
+    one_liner: str | None = None
+    genre: str | None = None
+    story_abstract: str | None = None
+    characters: list[str] = []
+    analyzed: bool = False
     created_at: datetime
 
 
@@ -110,6 +122,7 @@ class SceneRead(BaseModel):
 
 class SceneListResponse(BaseModel):
     screenplay_id: int
+    total_scenes: int
     scenes: list[SceneRead]
 
 

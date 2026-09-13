@@ -97,6 +97,14 @@ Extract structured data from raw scene text using the LLM: characters, actions, 
 - [x] LLM scene detection: new scenes recovered (typo tolerance) and merged, ordered by document position
 - [x] `POST /screenplays/{id}/detect-scenes` and `POST /screenplays/{id}/full-pipeline` endpoints
 - [x] Temp UI buttons: per-scene Analyze, per-screenplay LLM Detection / Full Pipeline
+- [x] **Screenplay-level metadata extraction**: one-liner, genre, story_abstract, characters via `SCREENPLAY_ANALYSIS_PROMPT`
+- [x] **New DB columns on Screenplay**: `one_liner`, `genre`, `story_abstract`, `characters`, `analyzed`
+- [x] **New endpoint**: `POST /screenplays/{id}/analyze` for film metadata extraction
+- [x] **Updated full-pipeline**: also extracts film metadata after scene analysis
+- [x] **Scene detection regex tightening**: requires 2+ chars after INT/EXT prefix, rejects short/false headings
+- [x] **LLM merge dedup**: filters invalid headings (no INT/EXT prefix or no dash), checks text overlap (70% threshold)
+- [x] **Scene numbering**: sequential 1, 2, 3... across entire screenplay, `total_scenes` field in API response
+- [x] **Updated ScreenplayResponse**: includes `one_liner`, `genre`, `story_abstract`, `characters`, `analyzed`
 
 ---
 
@@ -240,6 +248,7 @@ The backend is ready for frontend when it can:
 | `GET /scenes/{id}`                   | 3     | DONE    |
 | `POST /screenplays/{id}/detect-scenes` | 3   | DONE    |
 | `POST /screenplays/{id}/full-pipeline` | 3   | DONE    |
+| `POST /screenplays/{id}/analyze`       | 3   | DONE    |
 | `POST /shots/generate`                      | 4     | STUB    |
 | `GET /shots/{id}`                           | 5     | TODO    |
 | `GET /scenes/{id}/shots`                    | 5     | TODO    |

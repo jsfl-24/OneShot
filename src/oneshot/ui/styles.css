@@ -327,8 +327,13 @@ button.ghost:disabled {
   font-size: 12px;
 }
 
-.scene .ghost {
+.scene .ghost,
+#screenplay-meta .ghost {
   margin-top: 10px;
+}
+
+#screenplay-meta .analyzed-tag {
+  margin-top: 6px;
 }
 
 @media (max-width: 640px) {
