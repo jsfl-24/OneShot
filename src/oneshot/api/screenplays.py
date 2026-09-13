@@ -1,9 +1,12 @@
 """Screenplay API routes."""
 
+import asyncio
+import json
 from typing import Annotated
 
 import httpx
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 
 from oneshot.api.deps import DbSession
 from oneshot.api.errors import http_error
@@ -120,6 +123,56 @@ async def analyze_screenplay(screenplay_id: int, session: DbSession, provider: s
     except (NotFoundError, ValueError, RuntimeError, httpx.RequestError, httpx.HTTPStatusError) as exc:
         raise http_error(exc)
     return _screenplay_response(screenplay)
+
+
+@router.post("/{screenplay_id}/full-pipeline-stream")
+async def full_pipeline_stream(screenplay_id: int, session: DbSession, provider: str | None = None):
+    """Run the full pipeline and stream progress via Server-Sent Events."""
+
+    async def event_stream():
+        queue: asyncio.Queue = asyncio.Queue()
+
+        async def on_progress(payload: dict):
+            await queue.put(f"event: progress\ndata: {json.dumps(payload)}\n\n")
+
+        pipeline_task = asyncio.create_task(
+            pipeline_service.run_full_pipeline_stream(
+                screenplay_id, session, provider=provider, on_progress=on_progress
+            )
+        )
+
+        while True:
+            while not queue.empty():
+                yield await queue.get()
+
+            done, _ = await asyncio.wait({pipeline_task}, timeout=0.25)
+            if done:
+                while not queue.empty():
+                    yield await queue.get()
+                try:
+                    scenes = pipeline_task.result()
+                except Exception as exc:
+                    yield f"event: error\ndata: {json.dumps({'message': str(exc)})}\n\n"
+                    break
+                screenplay = screenplay_service.get_screenplay(screenplay_id, session)
+                final = _scene_list_response(screenplay_id, scenes)
+                payload = {
+                    "scenes": [s.model_dump(mode="json") for s in final.scenes],
+                    "total_scenes": final.total_scenes,
+                    "screenplay_id": screenplay_id,
+                    "screenplay": _screenplay_response(screenplay).model_dump(mode="json") if screenplay else None,
+                }
+                yield f"event: complete\ndata: {json.dumps(payload)}\n\n"
+                break
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.post("/{screenplay_id}/full-pipeline", response_model=SceneListResponse)

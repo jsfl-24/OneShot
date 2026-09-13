@@ -26,10 +26,28 @@
     sceneNote: $("#scene-note"),
     sceneList: $("#scene-list"),
     sceneEmpty: $("#scene-empty"),
-    screenplayMeta: $("#screenplay-meta"),
+screenplayMeta: $("#screenplay-meta"),
     screenplayMetaEmpty: $("#screenplay-meta-empty"),
-    uploadBtn: document.querySelector("#upload-form button"),
+    progressContainer: $("#progress-container"),
+    progressBar: $("#progress-bar"),
+    progressLabel: $("#progress-label"),
   };
+
+  function showProgress(label) {
+    els.progressContainer.hidden = false;
+    els.progressBar.style.width = "0%";
+    els.progressLabel.textContent = label;
+  }
+
+  function updateProgress(percent, label) {
+    els.progressContainer.hidden = false;
+    els.progressBar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+    if (label) els.progressLabel.textContent = label;
+  }
+
+  function hideProgress() {
+    els.progressContainer.hidden = true;
+  }
 
   function showError(message) {
     if (!message) return;
@@ -126,7 +144,51 @@
   }
 
   async function runFullPipeline(sp) {
-    await runLlmAction(sp.id, `/screenplays/${sp.id}/full-pipeline`, "Analysis complete.");
+    clearError();
+    showProgress(`Running full pipeline for "${sp.filename}"...`);
+    try {
+      const response = await fetch(`/screenplays/${sp.id}/full-pipeline-stream`, { method: "POST" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() ?? "";
+
+        for (const raw of events) {
+          const lines = raw.split("\n");
+          const eventType = lines.find((l) => l.startsWith("event:"))?.slice(6).trim() ?? "message";
+          const dataLine = lines.find((l) => l.startsWith("data:"));
+          if (!dataLine) continue;
+          const data = JSON.parse(dataLine.slice(5).trim());
+
+          if (eventType === "progress") {
+            updateProgress(data.percent ?? 0, data.detail || data.step || "");
+          } else if (eventType === "complete") {
+            updateProgress(100, "Complete.");
+            if (String(state.selectedScreenplayId) === String(sp.id)) {
+              state.scenes = data.scenes ?? [];
+              els.sceneNote.textContent = `${data.total_scenes ?? data.scenes.length} scenes detected in "${sp.filename}".`;
+              const idx = state.screenplays.findIndex((s) => String(s.id) === String(sp.id));
+              if (idx !== -1 && data.screenplay) state.screenplays[idx] = data.screenplay;
+              renderScenes();
+              renderScreenplayMeta();
+            }
+          } else if (eventType === "error") {
+            throw new Error(data.message || "Pipeline failed.");
+          }
+        }
+      }
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      hideProgress();
+    }
   }
 
   async function runLlmAction(screenplayId, path, doneText) {

@@ -330,6 +330,55 @@ async def test_full_pipeline_analyzes_all(client, monkeypatch):
     assert screenplay["genre"] == "Drama"
 
 
+async def test_full_pipeline_stream_emits_progress(client, monkeypatch):
+    from oneshot.ai import scene_analyzer, scene_detector_llm, screenplay_analyzer
+
+    async def fake_detect(prompt, **kwargs):
+        return json.dumps({"scenes": []})
+
+    async def fake_analyze(prompt, **kwargs):
+        return json.dumps(
+            {
+                "characters": ["JANE", "MARK"],
+                "actions": ["Action here."],
+                "dialogue": [],
+                "narrative_context": "Context.",
+            }
+        )
+
+    async def fake_screenplay_analyze(prompt, **kwargs):
+        return json.dumps(
+            {
+                "one_liner": "A short film.",
+                "genre": "Drama",
+                "story_abstract": "A dramatic encounter.",
+                "characters": ["JANE", "MARK"],
+            }
+        )
+
+    monkeypatch.setattr(scene_detector_llm, "generate", fake_detect)
+    monkeypatch.setattr(scene_analyzer, "generate", fake_analyze)
+    monkeypatch.setattr(screenplay_analyzer, "generate", fake_screenplay_analyze)
+
+    _, upload = _upload(client)
+    response = client.post(f"/screenplays/{upload['id']}/full-pipeline-stream")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+
+    body = response.text
+    assert "event: progress" in body
+    assert "event: complete" in body
+    assert "detecting_scenes" in body
+    assert "analyzing_scene" in body
+    assert "analyzing_screenplay" in body
+    assert body.count('"total_scenes"') == 1
+
+    complete_block = [b for b in body.split("event:") if b.startswith(" complete")][0]
+    import json as _json
+    complete_data = _json.loads(complete_block.split("data: ", 1)[1].strip())
+    assert complete_data["total_scenes"] == 4
+
+
 async def test_provider_query_param_passed_through(client, monkeypatch):
     from oneshot.ai import scene_detector_llm
 
