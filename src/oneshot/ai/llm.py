@@ -1,9 +1,10 @@
 """LLM and embedding abstraction layer.
 
-Supports two providers, selectable per deployment, per environment,
+Supports three providers, selectable per deployment, per environment,
 and per request:
 
-- ``ollama`` (local)  -> default, privacy-preserving, used in production.
+- ``gemini`` (online, default) -> Google Generative AI API; requires ``GEMINI_API_KEY``.
+- ``ollama`` (local)  -> privacy-preserving, used in production.
 - ``huggingface`` (online) -> development convenience via Hugging Face
   Inference API; requires ``HF_TOKEN``.
 
@@ -15,13 +16,14 @@ Keep this module the single integration point for model serving (spec
 §4, §9). Never call providers directly from routes or services.
 """
 
+# pyrefly: ignore [missing-import]
 import httpx
 
 from oneshot.config import settings
 
 _INFERENCE_TIMEOUT = httpx.Timeout(180.0, connect=10.0)
 
-_SUPPORTED_PROVIDERS = ("ollama", "huggingface")
+_SUPPORTED_PROVIDERS = ("gemini", "ollama", "huggingface")
 
 
 def _client() -> httpx.AsyncClient:
@@ -44,10 +46,17 @@ async def generate(
     """Generate text using the configured or requested LLM provider."""
     provider = provider or settings.LLM_PROVIDER
     if model is None:
-        model = settings.HF_LLM_MODEL if provider == "huggingface" else settings.LLM_MODEL
+        if provider == "gemini":
+            model = settings.GEMINI_MODEL
+        elif provider == "huggingface":
+            model = settings.HF_LLM_MODEL
+        else:
+            model = settings.LLM_MODEL
     temperature = settings.LLM_TEMPERATURE if temperature is None else temperature
     max_tokens = settings.LLM_MAX_TOKENS if max_tokens is None else max_tokens
 
+    if provider == "gemini":
+        return await _generate_gemini(prompt, model)
     if provider == "ollama":
         return await _generate_ollama(prompt, model)
     if provider == "huggingface":
@@ -63,17 +72,66 @@ async def embed(
     """Generate an embedding vector for ``text`` using the chosen provider."""
     provider = provider or settings.EMBEDDING_PROVIDER
     if model is None:
-        model = (
-            settings.HF_EMBEDDING_MODEL
-            if provider == "huggingface"
-            else settings.EMBEDDING_MODEL
-        )
+        if provider == "gemini":
+            model = settings.GEMINI_EMBEDDING_MODEL
+        elif provider == "huggingface":
+            model = settings.HF_EMBEDDING_MODEL
+        else:
+            model = settings.EMBEDDING_MODEL
 
+    if provider == "gemini":
+        return await _embed_gemini(text, model)
     if provider == "ollama":
         return await _embed_ollama(text, model)
     if provider == "huggingface":
         return await _embed_huggingface(text, model)
     _raise_unknown(provider)
+
+
+async def _generate_gemini(prompt: str, model: str) -> str:
+    api_key = settings.GEMINI_API_KEY
+    if not api_key:
+        raise RuntimeError(
+            "GEMINI_API_KEY is not set. The Gemini online provider requires a key "
+            "(set the GEMINI_API_KEY environment variable)."
+        )
+
+    from google import genai
+
+    client = genai.Client(api_key=api_key)
+    response = await client.aio.models.generate_content(model=model, contents=prompt)
+    text = (response.text or "").strip()
+    if not text:
+        detail_parts = []
+        if response.candidates:
+            cand = response.candidates[0]
+            detail_parts.append(f"finish_reason={cand.finish_reason}")
+            if cand.finish_message:
+                detail_parts.append(f"finish_message={cand.finish_message!r}")
+            if cand.content and cand.content.parts:
+                detail_parts.append(f"parts={len(cand.content.parts)}")
+                for index, part in enumerate(cand.content.parts):
+                    part_len = len(part.text) if part.text else 0
+                    detail_parts.append(f"part[{index}]: thought={part.thought}, text_len={part_len}")
+        if response.prompt_feedback:
+            detail_parts.append(
+                f"block_reason={response.prompt_feedback.block_reason}"
+            )
+            if response.prompt_feedback.block_reason_message:
+                detail_parts.append(
+                    f"block_message={response.prompt_feedback.block_reason_message!r}"
+                )
+        if response.usage_metadata:
+            detail_parts.append(
+                f"tokens={response.usage_metadata.total_token_count}"
+            )
+        if not detail_parts:
+            detail_parts.append(repr(response))
+        raise ValueError(
+            f"Gemini returned no text for model {model!r}. "
+            + "; ".join(detail_parts)
+        )
+    return text
 
 
 async def _generate_ollama(prompt: str, model: str) -> str:
@@ -133,6 +191,24 @@ async def _generate_huggingface(
     if not text:
         raise ValueError(f"Hugging Face returned no text for model {model!r}: {data}")
     return text
+
+
+async def _embed_gemini(text: str, model: str) -> list[float]:
+    api_key = settings.GEMINI_API_KEY
+    if not api_key:
+        raise RuntimeError(
+            "GEMINI_API_KEY is not set. The Gemini online provider requires a key "
+            "(set the GEMINI_API_KEY environment variable)."
+        )
+
+    from google import genai
+
+    client = genai.Client(api_key=api_key)
+    response = await client.aio.models.embed_content(model=model, contents=text)
+    values = response.embeddings[0].values
+    if not values:
+        raise ValueError(f"Gemini returned no embedding for model {model!r}")
+    return list(values)
 
 
 async def _embed_ollama(text: str, model: str) -> list[float]:

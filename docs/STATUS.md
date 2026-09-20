@@ -122,7 +122,8 @@ Phase 8 (frontend).
 
 ## Verification
 
-- Test command: `python -m pytest`
-- Lint command: `python -m ruff check src tests`
+- Environment: `uv` — symlink `.venv` via `uv sync` (deps from `pyproject.toml`); activate with `uv run`
+- Test command: `uv run pytest`
+- Lint command: `uv run ruff check src tests`
 - Latest run: 60 passed, 2 warnings, ruff clean (2026-09-13)
 - Provider: default Hugging Face (online) — `google/gemma-3-4b-it` / `BAAI/bge-base-en-v1.5`; `AI LLM` buttons verified end-to-end.

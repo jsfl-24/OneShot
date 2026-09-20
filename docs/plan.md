@@ -16,6 +16,7 @@ Build a local-first, AI-assisted filmmaking pre-production system that ingests s
 | Layer              | Technology                                 |
 | ------------------ | ------------------------------------------ |
 | Language           | Python                                     |
+| Env/Package Mgmt   | uv — virtualenv + dependency manager        |
 | API Framework      | FastAPI                                    |
 | Validation/Schemas | Pydantic                                    |
 | DB                 | SQLite via SQLModel                        |
@@ -23,9 +24,9 @@ Build a local-first, AI-assisted filmmaking pre-production system that ingests s
 | DOCX Extraction    | python-docx                                |
 | Vector DB          | Qdrant                                     |
 | LLM (deployment)   | Ollama via local serving — Gemma 4 E4B     |
-| LLM (development)  | Hugging Face Inference Providers (router) — `google/gemma-3-4b-it` (default) |
+| LLM (development)  | Gemini API via `google-genai` — `gemma-4-26b-a4b-it` (default; Ollama/Hugging Face still available) |
 | RAG Embeddings (deployment) | Ollama (nomic-embed-text)          |
-| RAG Embeddings (development) | Hugging Face Inference Providers — `BAAI/bge-base-en-v1.5` (768-dim, matches nomic) |
+| RAG Embeddings (development) | Gemini API — `gemini-embedding-2` (Hugging Face `BAAI/bge-base-en-v1.5` still available) |
 | Version Control    | Git + GitHub                               |
 
 ---
@@ -270,6 +271,6 @@ The backend is ready for frontend when it can:
 - **LLM is replaceable** — the final model is not permanently selected. Keep `ai/llm.py` as the single abstraction point.
 - **QLoRA fine-tuning** is optional and only considered after the baseline pipeline works and has been evaluated.
 - **RAG is mandatory** — cinematic knowledge retrieval must be part of the shot-generation pipeline; the pipeline is not complete without it.
-- **LLM/RAG provider by environment** — development defaults to the Hugging Face Inference Providers router (LLM `google/gemma-3-4b-it`, embeddings `BAAI/bge-base-en-v1.5`); deployment must use local Ollama (Gemma 4 E4B, `nomic-embed-text`). The HF router's gemma-4 models are reasoning-focused, so the JSON-strict default is gemma-3-4b-it. Provider selection is config-driven only.
+- **LLM/RAG provider by environment** — development defaults to the Gemini API (`gemma-4-26b-a4b-it` via `google-genai`, needs `GEMINI_API_KEY`); Ollama (Gemma 4 E4B, `nomic-embed-text`) and Hugging Face Inference Providers remain available alternatives. Provider selection is config-driven only.
 - **Storyboard failures must not corrupt the shot plan.**
 - **Privacy first** — no external AI/API calls unless the user explicitly configures them.

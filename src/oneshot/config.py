@@ -14,23 +14,23 @@ class Settings:
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///oneshot.db")
     UPLOAD_DIR: Path = Path(os.getenv("UPLOAD_DIR", "uploads"))
 
-    # LLM — choose "ollama" (local) or "huggingface" (online) per deployment/development.
-    # Default: huggingface (online) for development; switch to "ollama" for local deployment.
-    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "huggingface")
+    # LLM — choose "gemini" (online, default), "ollama" (local), or "huggingface" (online).
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini")
     LLM_MODEL: str = os.getenv("LLM_MODEL", "gemma4:4b")
     LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.7"))
     LLM_MAX_TOKENS: int = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 
-    # Embeddings (for RAG) — choose "ollama" (local) or "huggingface" (online)
-    EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "huggingface")
+    # Embeddings (for RAG) — choose "gemini" (online, default), "ollama" (local), or "huggingface" (online)
+    EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "gemini")
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
-    EMBEDDING_DIM: int = int(os.getenv("EMBEDDING_DIM", "768"))
-
-    # Qdrant
-    QDRANT_URL: str = os.getenv("QDRANT_URL", "http://localhost:6333")
 
     # Ollama (local)
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+
+    # Gemini (online, default provider)
+    GEMINI_API_KEY: str | None = os.getenv("GEMINI_API_KEY")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemma-4-26b-a4b-it")
+    GEMINI_EMBEDDING_MODEL: str = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2")
 
     # Hugging Face (online, development-only; Inference Providers router)
     HF_TOKEN: str | None = os.getenv("HF_TOKEN")

@@ -13,21 +13,21 @@ from pydantic import BaseModel
 
 
 class Provider(str, Enum):
+    GEMINI = "gemini"
     OLLAMA = "ollama"
     HUGGINGFACE = "huggingface"
 
 
 class LLMConfig(BaseModel):
-    provider: Provider = Provider(os.getenv("LLM_PROVIDER", "ollama"))
+    provider: Provider = Provider(os.getenv("LLM_PROVIDER", "gemini"))
     model: str = os.getenv("LLM_MODEL", "gemma4:4b")
     temperature: float = 0.7
     max_tokens: int = 4096
 
 
 class EmbeddingConfig(BaseModel):
-    provider: Provider = Provider(os.getenv("EMBEDDING_PROVIDER", "ollama"))
+    provider: Provider = Provider(os.getenv("EMBEDDING_PROVIDER", "gemini"))
     model: str = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
-    dimension: int = int(os.getenv("EMBEDDING_DIM", "768"))
 
 
 llm_config = LLMConfig()

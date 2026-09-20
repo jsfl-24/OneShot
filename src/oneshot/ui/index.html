@@ -3,76 +3,170 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OneShot — Production Test Bench</title>
+  <title>OneShot — Screenplay to Shot List</title>
+  <link rel="stylesheet" href="https://unpkg.com/open-props">
+  <link rel="stylesheet" href="https://unpkg.com/open-props/normalize.dark.min.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="masthead">
     <div class="masthead-inner">
-      <div>
+      <div class="masthead-title-block">
         <h1 class="masthead-title">OneShot</h1>
-        <p class="masthead-sub">Production test bench — screenplay ingestion and scene detection</p>
+        <p class="masthead-sub">Screenplay to shot list, step by step</p>
       </div>
-      <div class="health-chip" id="health-chip" title="Current LLM provider and model">
-        <span class="health-dot" aria-hidden="true"></span>
-        <span id="health-text">checking…</span>
+      <div class="masthead-actions">
+        <button type="button" id="settings-toggle" class="btn ghost" aria-expanded="false" aria-controls="settings-panel">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"></path>
+          </svg>
+          <span>Settings</span>
+        </button>
+        <div class="health-chip" id="health-chip" title="Current provider and model">
+          <span class="health-dot" aria-hidden="true"></span>
+          <span id="health-text">checking…</span>
+        </div>
       </div>
     </div>
   </header>
 
-  <div class="error-banner" id="error-banner" hidden></div>
-
-  <div class="progress-container" id="progress-container" hidden>
-    <div class="progress-track">
-      <div class="progress-bar" id="progress-bar"></div>
+  <section class="settings-panel" id="settings-panel" hidden>
+    <div class="settings-grid">
+      <label class="field settings-field">
+        <span class="field-label">LLM</span>
+        <select id="llm-provider" title="LLM provider">
+          <option value="gemini">Gemini</option>
+          <option value="ollama">Ollama</option>
+          <option value="huggingface">HuggingFace</option>
+        </select>
+      </label>
+      <label class="field settings-field">
+        <span class="field-label">Embeddings</span>
+        <select id="embedding-provider" title="Embedding provider">
+          <option value="gemini">Gemini</option>
+          <option value="ollama">Ollama</option>
+          <option value="huggingface">HuggingFace</option>
+        </select>
+      </label>
+      <div class="settings-actions">
+        <button type="button" id="ping-btn" class="btn ghost">Ping</button>
+      </div>
     </div>
-    <span class="progress-label" id="progress-label"></span>
+  </section>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <nav class="steps-nav" aria-label="Workflow steps">
+        <ul>
+          <li class="step is-active" data-step="1">
+            <span class="step-num" aria-hidden="true">1</span>
+            <span class="step-label">Project</span>
+          </li>
+          <li class="step" data-step="2">
+            <span class="step-num" aria-hidden="true">2</span>
+            <span class="step-label">Upload</span>
+          </li>
+          <li class="step" data-step="3">
+            <span class="step-num" aria-hidden="true">3</span>
+            <span class="step-label">Pipeline</span>
+          </li>
+          <li class="step" data-step="4">
+            <span class="step-num" aria-hidden="true">4</span>
+            <span class="step-label">Review</span>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="wizard">
+      <div class="progress-bar-wrap" id="progress-container" hidden>
+        <div class="progress-track">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <span class="progress-label" id="progress-label"></span>
+      </div>
+
+      <div class="error-banner" id="error-banner" hidden></div>
+
+      <section class="step-panel is-active" data-panel="1">
+        <div class="panel-head">
+          <h2 class="panel-title">Create or choose a project</h2>
+          <p class="panel-note">A project owns its screenplays, scenes, and shot plan.</p>
+        </div>
+
+        <form id="project-form" class="inline-form">
+          <input type="text" id="project-name" placeholder="Project name" required>
+          <input type="text" id="project-desc" placeholder="Short description (optional)">
+          <button type="submit" class="btn primary">Create project</button>
+        </form>
+
+        <ul id="project-list" class="card-list" aria-label="Projects"></ul>
+        <p id="project-empty" class="empty-state">No projects yet. Create one to begin.</p>
+
+        <div class="step-actions">
+          <button type="button" class="btn primary" id="step1-next" data-goto="2" disabled>Continue to Upload</button>
+        </div>
+      </section>
+
+      <section class="step-panel" data-panel="2">
+        <div class="panel-head">
+          <h2 class="panel-title">Upload a screenplay</h2>
+          <p class="panel-note" id="screenplay-note">Select a project first.</p>
+        </div>
+
+        <form id="upload-form" class="inline-form" hidden>
+          <label class="file-field">
+            <input type="file" id="screenplay-file" accept=".pdf,.docx,.txt" required>
+            <span class="file-picker">Choose file…</span>
+          </label>
+          <button type="submit" id="upload-btn" class="btn primary">Upload screenplay</button>
+        </form>
+
+        <ul id="screenplay-list" class="card-list" aria-label="Screenplays"></ul>
+        <p id="screenplay-empty" class="empty-state">Upload a screenplay to begin.</p>
+
+        <div class="step-actions">
+          <button type="button" class="btn ghost" data-goto="1">Back</button>
+          <button type="button" class="btn primary" id="step2-next" data-goto="3" disabled>Continue to Pipeline</button>
+        </div>
+      </section>
+
+      <section class="step-panel" data-panel="3">
+        <div class="panel-head">
+          <h2 class="panel-title">Run the pipeline</h2>
+          <p class="panel-note" id="pipeline-note">Detect scenes, analyze the screenplay, and extract film metadata.</p>
+        </div>
+
+        <div class="pipeline-actions">
+          <button type="button" id="btn-full-pipeline" class="btn primary">Run full pipeline</button>
+          <button type="button" id="btn-detect" class="btn ghost">Detect scenes</button>
+        </div>
+
+        <div id="screenplay-meta" class="meta-panel"></div>
+        <p id="screenplay-meta-empty" class="empty-state">Metadata appears after analysis.</p>
+
+        <div class="step-actions">
+          <button type="button" class="btn ghost" data-goto="2">Back</button>
+          <button type="button" class="btn primary" id="step3-next" data-goto="4" disabled>Review Scenes</button>
+        </div>
+      </section>
+
+      <section class="step-panel" data-panel="4">
+        <div class="panel-head">
+          <h2 class="panel-title">Review scenes</h2>
+          <p class="panel-note" id="scene-note">Select a screenplay to see its detected scenes.</p>
+        </div>
+
+        <div id="scene-list" class="scene-list"></div>
+        <p id="scene-empty" class="empty-state">No scenes to show.</p>
+
+        <div class="step-actions">
+          <button type="button" class="btn ghost" data-goto="3">Back to Pipeline</button>
+        </div>
+      </section>
+    </main>
   </div>
-
-  <main class="pipeline">
-    <section class="panel" data-step="1">
-      <h2 class="panel-title">Projects</h2>
-      <p class="panel-note">A project owns its screenplays, scenes, and later the shot plan.</p>
-
-      <form id="project-form" class="inline-form">
-        <input type="text" id="project-name" placeholder="Project name" required>
-        <input type="text" id="project-desc" placeholder="Short description (optional)">
-        <button type="submit" class="primary">Create project</button>
-      </form>
-
-      <ul id="project-list" class="entry-list" aria-label="Projects"></ul>
-      <p id="project-empty" class="empty-state">No projects yet. Create one to begin.</p>
-    </section>
-
-    <section class="panel" data-step="2" aria-busy="false">
-      <h2 class="panel-title">Screenplays</h2>
-      <p class="panel-note" id="screenplay-note">Select a project first.</p>
-
-      <form id="upload-form" class="inline-form">
-        <input type="file" id="screenplay-file" accept=".pdf,.docx,.txt" required>
-        <button type="submit" class="primary">Upload screenplay</button>
-      </form>
-
-      <ul id="screenplay-list" class="entry-list" aria-label="Screenplays"></ul>
-      <p id="screenplay-empty" class="empty-state">Upload a screenplay to begin.</p>
-    </section>
-
-    <section class="panel" data-step="3">
-      <h2 class="panel-title">Screenplay Info</h2>
-      <p class="panel-note">Film-level metadata extracted by the LLM.</p>
-
-      <div id="screenplay-meta" class="scene-meta"></div>
-      <p id="screenplay-meta-empty" class="empty-state">Select a screenplay to see its film metadata.</p>
-    </section>
-
-    <section class="panel" data-step="4">
-      <h2 class="panel-title">Scenes</h2>
-      <p class="panel-note" id="scene-note">Select a screenplay to see its detected scenes.</p>
-
-      <div id="scene-list" class="scene-list"></div>
-      <p id="scene-empty" class="empty-state">No scenes to show.</p>
-    </section>
-  </main>
 
   <script src="app.js"></script>
 </body>

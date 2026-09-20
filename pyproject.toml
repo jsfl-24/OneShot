@@ -18,6 +18,7 @@ dependencies = [
     "sqlmodel>=0.0.22",
     "python-dotenv>=1.0",
     "alembic>=1.13",
+    "google-genai>=1.0",
 ]
 
 [project.optional-dependencies]

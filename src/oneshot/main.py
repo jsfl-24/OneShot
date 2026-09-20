@@ -6,8 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from oneshot.api import export, projects, scenes, screenplays, shots
-from oneshot.config import settings
+from oneshot.api import export, projects, providers, scenes, screenplays, shots
 from oneshot.db import init_db
 
 
@@ -24,6 +23,7 @@ app.include_router(screenplays.router)
 app.include_router(scenes.router)
 app.include_router(shots.router)
 app.include_router(export.router)
+app.include_router(providers.router)
 
 app.mount(
     "/ui",
@@ -34,14 +34,15 @@ app.mount(
 
 @app.get("/health")
 def health():
+    status = providers._status()
     return {
         "status": "ok",
         "llm": {
-            "provider": settings.LLM_PROVIDER,
-            "model": settings.LLM_MODEL,
+            "provider": status.llm.provider,
+            "model": status.llm.model,
         },
         "embeddings": {
-            "provider": settings.EMBEDDING_PROVIDER,
-            "model": settings.EMBEDDING_MODEL,
+            "provider": status.embeddings.provider,
+            "model": status.embeddings.model,
         },
     }
