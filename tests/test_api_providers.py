@@ -12,8 +12,8 @@ async def _fake_ok(*args, **kwargs):
 
 
 async def test_providers_switch_llm(client, monkeypatch):
-    monkeypatch.setattr(settings, "LLM_PROVIDER", "gemini")
-    monkeypatch.setattr(settings, "EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.setattr(settings, "LLM_PROVIDER", "litert")
+    monkeypatch.setattr(settings, "EMBEDDING_PROVIDER", "litert")
     response = client.post(
         "/providers", json={"llm_provider": "ollama"}
     )
@@ -21,27 +21,27 @@ async def test_providers_switch_llm(client, monkeypatch):
     body = response.json()
     assert body["llm"]["provider"] == "ollama"
     assert settings.LLM_PROVIDER == "ollama"
-    assert body["embeddings"]["provider"] == "gemini"
-    assert settings.EMBEDDING_PROVIDER == "gemini"
+    assert body["embeddings"]["provider"] == "litert"
+    assert settings.EMBEDDING_PROVIDER == "litert"
     assert "model" in body["llm"]
 
 
 def test_providers_switch_embedding(client, monkeypatch):
-    monkeypatch.setattr(settings, "LLM_PROVIDER", "gemini")
-    monkeypatch.setattr(settings, "EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.setattr(settings, "LLM_PROVIDER", "litert")
+    monkeypatch.setattr(settings, "EMBEDDING_PROVIDER", "litert")
     response = client.post(
         "/providers", json={"embedding_provider": "ollama"}
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["llm"]["provider"] == "gemini"
+    assert body["llm"]["provider"] == "litert"
     assert body["embeddings"]["provider"] == "ollama"
     assert settings.EMBEDDING_PROVIDER == "ollama"
 
 
 def test_providers_switch_both_at_once(client, monkeypatch):
-    monkeypatch.setattr(settings, "LLM_PROVIDER", "gemini")
-    monkeypatch.setattr(settings, "EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.setattr(settings, "LLM_PROVIDER", "litert")
+    monkeypatch.setattr(settings, "EMBEDDING_PROVIDER", "litert")
     response = client.post(
         "/providers",
         json={"llm_provider": "huggingface", "embedding_provider": "ollama"},
@@ -49,9 +49,31 @@ def test_providers_switch_both_at_once(client, monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body == {
-        "llm": {"provider": "huggingface", "model": settings.LLM_MODEL},
+        "llm": {"provider": "huggingface", "model": settings.HF_LLM_MODEL},
         "embeddings": {"provider": "ollama", "model": settings.EMBEDDING_MODEL},
     }
+
+
+
+def test_providers_switch_litert(client, monkeypatch):
+    monkeypatch.setattr(settings, "LLM_PROVIDER", "litert")
+    monkeypatch.setattr(settings, "EMBEDDING_PROVIDER", "litert")
+    response = client.post(
+        "/providers",
+        json={"llm_provider": "litert", "embedding_provider": "litert"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["llm"] == {
+        "provider": "litert",
+        "model": settings.LITERT_LLM_MODEL,
+    }
+    assert body["embeddings"] == {
+        "provider": "litert",
+        "model": settings.LITERT_EMBEDDING_MODEL,
+    }
+    assert settings.LLM_PROVIDER == "litert"
+    assert settings.EMBEDDING_PROVIDER == "litert"
 
 
 def test_providers_reject_invalid_provider(client):
@@ -60,11 +82,11 @@ def test_providers_reject_invalid_provider(client):
 
 
 def test_providers_reject_empty_switch(client, monkeypatch):
-    monkeypatch.setattr(settings, "LLM_PROVIDER", "gemini")
-    monkeypatch.setattr(settings, "EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.setattr(settings, "LLM_PROVIDER", "litert")
+    monkeypatch.setattr(settings, "EMBEDDING_PROVIDER", "litert")
     response = client.post("/providers", json={})
     assert response.status_code == 200
-    assert response.json()["llm"]["provider"] == "gemini"
+    assert response.json()["llm"]["provider"] == "litert"
 
 
 async def test_ping_reports_latency(client, monkeypatch):

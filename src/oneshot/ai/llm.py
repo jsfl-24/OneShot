@@ -7,6 +7,8 @@ and per request:
 - ``ollama`` (local)  -> privacy-preserving, used in production.
 - ``huggingface`` (online) -> development convenience via Hugging Face
   Inference API; requires ``HF_TOKEN``.
+- ``litert`` (local, on-device) -> Gemma 4 E2B served by the LiteRT LLM
+  service; embeddings via the EmbeddingGemma 300M HTTP service.
 
 The provider choice is resolved in this order:
 1. An explicit ``provider`` argument passed by the caller.
@@ -23,7 +25,7 @@ from oneshot.config import settings
 
 _INFERENCE_TIMEOUT = httpx.Timeout(180.0, connect=10.0)
 
-_SUPPORTED_PROVIDERS = ("gemini", "ollama", "huggingface")
+_SUPPORTED_PROVIDERS = ("gemini", "ollama", "huggingface", "litert")
 
 
 def _client() -> httpx.AsyncClient:
@@ -50,6 +52,8 @@ async def generate(
             model = settings.GEMINI_MODEL
         elif provider == "huggingface":
             model = settings.HF_LLM_MODEL
+        elif provider == "litert":
+            model = settings.LITERT_LLM_MODEL
         else:
             model = settings.LLM_MODEL
     temperature = settings.LLM_TEMPERATURE if temperature is None else temperature
@@ -61,6 +65,8 @@ async def generate(
         return await _generate_ollama(prompt, model)
     if provider == "huggingface":
         return await _generate_huggingface(prompt, model, temperature, max_tokens)
+    if provider == "litert":
+        return await _generate_litert(prompt, model, max_tokens)
     _raise_unknown(provider)
 
 
@@ -76,6 +82,8 @@ async def embed(
             model = settings.GEMINI_EMBEDDING_MODEL
         elif provider == "huggingface":
             model = settings.HF_EMBEDDING_MODEL
+        elif provider == "litert":
+            model = settings.LITERT_EMBEDDING_MODEL
         else:
             model = settings.EMBEDDING_MODEL
 
@@ -85,6 +93,8 @@ async def embed(
         return await _embed_ollama(text, model)
     if provider == "huggingface":
         return await _embed_huggingface(text, model)
+    if provider == "litert":
+        return await _embed_litert(text, model)
     _raise_unknown(provider)
 
 
@@ -193,6 +203,30 @@ async def _generate_huggingface(
     return text
 
 
+async def _generate_litert(prompt: str, model: str, max_tokens: int) -> str:
+    async with _client() as client:
+        response = await client.post(
+            f"{settings.LITERT_LLM_URL}/v1/chat/completions",
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": max_tokens,
+            },
+        )
+        response.raise_for_status()
+    data = response.json()
+
+    try:
+        message = data["choices"][0].get("message", {})
+        text = (message.get("content") or "").strip()
+    except (KeyError, IndexError, TypeError):
+        raise ValueError(f"LiteRT returned an unexpected payload: {data}")
+
+    if not text:
+        raise ValueError(f"LiteRT returned no text for model {model!r}: {data}")
+    return text
+
+
 async def _embed_gemini(text: str, model: str) -> list[float]:
     api_key = settings.GEMINI_API_KEY
     if not api_key:
@@ -250,3 +284,17 @@ async def _embed_huggingface(text: str, model: str) -> list[float]:
             return [float(x) for x in data[0]]
         return [float(x) for x in data]
     raise ValueError(f"Hugging Face returned an unexpected embedding payload: {data}")
+
+
+async def _embed_litert(text: str, model: str) -> list[float]:
+    async with _client() as client:
+        response = await client.post(
+            f"{settings.LITERT_EMBEDDING_URL}/v1/embeddings",
+            json={"input": text, "normalize": False},
+        )
+        response.raise_for_status()
+    data = response.json()
+
+    if "embedding" in data:
+        return [float(x) for x in data["embedding"]]
+    raise ValueError(f"LiteRT returned an unexpected embedding payload: {data}")

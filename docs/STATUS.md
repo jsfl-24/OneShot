@@ -1,6 +1,6 @@
 # OneShot — Development Status
 
-> Last updated: 2026-09-13
+> Last updated: 2026-09-21
 > Current phase: **Phase 3 — Structured Scene Understanding (DONE)**
 > Next phase: **Phase 4 — Scene to Shot Segmentation**
 
@@ -50,9 +50,10 @@ Implemented:
 ### Phase 3 — Structured Scene Understanding (DONE)
 
 Implemented:
-- LLM abstraction supports online (Hugging Face) and local (Ollama) choice for
-  text generation and RAG embeddings (`ai/llm.py`, config, `/health`); per-call
-  provider override via `?provider=` query param on the new endpoints
+- LLM abstraction is provider-selectable: LiteRT (default, local) via the
+  `litert_llm_service`/`embeddinggemma-service` HTTP services, plus Ollama,
+  Gemini API, and Hugging Face as config-driven alternatives (`ai/llm.py`,
+  config, `/health`); per-call provider override via `?provider=` query param
 - LLM scene detection with typo tolerance + merging of new scenes into the
   regex-detected set, ordered by document position (`ai/scene_detector_llm.py`,
   `services/scene_service.detect_scenes_llm_and_merge`)
@@ -125,5 +126,6 @@ Phase 8 (frontend).
 - Environment: `uv` — symlink `.venv` via `uv sync` (deps from `pyproject.toml`); activate with `uv run`
 - Test command: `uv run pytest`
 - Lint command: `uv run ruff check src tests`
-- Latest run: 60 passed, 2 warnings, ruff clean (2026-09-13)
-- Provider: default Hugging Face (online) — `google/gemma-3-4b-it` / `BAAI/bge-base-en-v1.5`; `AI LLM` buttons verified end-to-end.
+- Latest run: 87 passed, 2 warnings (deprecation), ruff clean (2026-09-21)
+- Provider: default **LiteRT (local)** — Gemma 4 E2B (`gemma-4-E2B-it`) via `litert_llm_service` on `:8101`, EmbeddingGemma 300M via `embeddinggemma-service` on `:8100`.
+- Verified end-to-end with live LiteRT services (2026-09-21): `/providers/ping` (LLM + embeddings), project → screenplay upload → full pipeline → 4/4 scenes analyzed → screenplay metadata extracted.

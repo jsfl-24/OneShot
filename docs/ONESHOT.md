@@ -89,8 +89,8 @@ Use these technologies unless a documented technical reason requires a change:
 - **DOCX extraction:** python-docx
 - **Initial database:** SQLite
 - **Vector database:** Qdrant
-- **Initial local model serving:** Ollama
-- **Model:** Gemma 4 E4B from Hugging Face during development, then Gemma 4 E4B served through the user's Ollama server for deployment
+- **Initial local model serving:** LiteRT (`ai-edge-litert` / `litert-lm-api`) serving Gemma 4 E2B and EmbeddingGemma 300M as local HTTP services (default provider = `litert`)
+- **Model:** Gemma 4 E2B (`.litertlm`) for LLM + EmbeddingGemma 300M (`.tflite`) for embeddings, served locally on this machine. Ollama (Gemma 4 E4B) and online providers (Gemini API, Hugging Face) remain available as config-driven alternatives.
 - **Fine-tuning, only if needed later:** Hugging Face Transformers, PEFT, and QLoRA
 - **Version control:** Git and GitHub
 

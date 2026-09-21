@@ -23,10 +23,10 @@ Build a local-first, AI-assisted filmmaking pre-production system that ingests s
 | PDF Extraction     | PyMuPDF                                    |
 | DOCX Extraction    | python-docx                                |
 | Vector DB          | Qdrant                                     |
-| LLM (deployment)   | Ollama via local serving — Gemma 4 E4B     |
-| LLM (development)  | Gemini API via `google-genai` — `gemma-4-26b-a4b-it` (default; Ollama/Hugging Face still available) |
-| RAG Embeddings (deployment) | Ollama (nomic-embed-text)          |
-| RAG Embeddings (development) | Gemini API — `gemini-embedding-2` (Hugging Face `BAAI/bge-base-en-v1.5` still available) |
+| LLM (deployment)   | LiteRT local serving — **Gemma 4 E2B** (`litert_llm_service` on :8101)                                        |
+| LLM (development)  | LiteRT local serving — Gemma 4 E2B (default `LLM_PROVIDER=litert`; Ollama/Gemma 4 E4B and Gemini API still available) |
+| RAG Embeddings (deployment) | EmbeddingGemma 300M via LiteRT (`embeddinggemma-service` on :8100)                             |
+| RAG Embeddings (development) | EmbeddingGemma 300M via LiteRT (default `EMBEDDING_PROVIDER=litert`; Ollama `nomic-embed-text` and Gemini `gemini-embedding-2` still available) |
 | Version Control    | Git + GitHub                               |
 
 ---
@@ -53,7 +53,7 @@ Build a local-first, AI-assisted filmmaking pre-production system that ingests s
 - [x] Configure FastAPI app with lifespan (`main.py`)
 - [x] Define SQLModel persistence models (`db_models.py`): Project, Screenplay, Scene
 - [x] Define Pydantic API schemas (`schemas.py`): request/response models, enums (ShotType, CameraAngle, etc.)
-- [x] Set up configuration via env vars (`config.py`): DB URL, LLM provider, Ollama/Qdrant URLs
+- [x] Set up configuration via env vars (`config.py`): DB URL, LLM/embedding provider endpoints (LiteRT/Ollama/Gemini/HF), Qdrant URL
 - [x] Set up SQLite database init (`db.py`)
 - [x] Add `/health` endpoint
 - [x] Add project CRUD API (`/projects`): create, list, get
@@ -160,16 +160,16 @@ Full CRUD on shots with validation and status management (draft/approved).
 Enhance shot quality with cinematic knowledge retrieval. **RAG is mandatory** and must be integrated into the shot-generation pipeline. Implementation stays replaceable, but the pipeline is only complete with RAG enabled.
 
 ### Development vs. Deployment (RAG / LLM serving)
-- **Development:** RAG and LLM serving can use an **online model from Hugging Face via its online API** (preferred model: **Gemma 4 E4B**). This is a development-time convenience to iterate fast without a local inference server.
-- **Deployment:** RAG and LLM serving must run **fully local** through **Ollama** (preferred model: **Gemma 4 E4B**, embeddings via `nomic-embed-text`). No third-party hosted AI in production — screenplay privacy is preserved.
+- **Default (local, privacy-first):** RAG and LLM serving run **fully local through LiteRT** — LLM via `litert_llm_service` (Gemma 4 E2B on `:8101`), embeddings via `embeddinggemma-service` (EmbeddingGemma 300M on `:8100`). No third-party hosted AI — screenplay privacy is preserved.
+- **Alternatives (config-driven):** Ollama (Gemma 4 E4B, `nomic-embed-text`) for fully-local dev without the `.litertlm` runtime, or online providers (Gemini API via `google-genai`, Hugging Face Inference Providers router) as a development-time convenience. Provider choice does not change application or RAG code paths.
 - The provider must be selected through configuration (`LLM_PROVIDER`, embeddings config) and must not change application or RAG code paths.
 
 ### Tasks
 - [ ] Set up Qdrant client connection (configurable URL)
 - [ ] Design cinematic knowledge schema (shot types, camera techniques, lens characteristics, movement semantics)
 - [ ] Populate Qdrant with reference cinematic knowledge (seed data)
-- [ ] Implement embedding generation — Ollama `nomic-embed-text` for deployment, Hugging Face online embeddings API for development
-- [ ] Implement LLM serving — Ollama (Gemma 4 E4B) for deployment, Hugging Face online API (Gemma 4 E4B) for development
+- [ ] Implement embedding generation — default `embeddinggemma-service` (EmbeddingGemma 300M via LiteRT); Ollama `nomic-embed-text` and Gemini `gemini-embedding-2` as alternatives
+- [ ] Implement LLM serving — default `litert_llm_service` (Gemma 4 E2B via LiteRT); Ollama (Gemma 4 E4B) and online providers as alternatives
 - [ ] Build RAG retrieval layer: given a scene context + desired shot attributes, retrieve relevant cinematic references
 - [ ] Integrate RAG into shot generation prompt (augment with retrieved context)
 - [ ] Shot generation must always use RAG context — no non-RAG fallback path
@@ -271,6 +271,6 @@ The backend is ready for frontend when it can:
 - **LLM is replaceable** — the final model is not permanently selected. Keep `ai/llm.py` as the single abstraction point.
 - **QLoRA fine-tuning** is optional and only considered after the baseline pipeline works and has been evaluated.
 - **RAG is mandatory** — cinematic knowledge retrieval must be part of the shot-generation pipeline; the pipeline is not complete without it.
-- **LLM/RAG provider by environment** — development defaults to the Gemini API (`gemma-4-26b-a4b-it` via `google-genai`, needs `GEMINI_API_KEY`); Ollama (Gemma 4 E4B, `nomic-embed-text`) and Hugging Face Inference Providers remain available alternatives. Provider selection is config-driven only.
+- **LLM/RAG provider by environment** — **defaults to LiteRT** (fully local, privacy-first): LLM via `litert_llm_service` (Gemma 4 E2B), embeddings via `embeddinggemma-service` (EmbeddingGemma 300M). Ollama (Gemma 4 E4B, `nomic-embed-text`) and Gemini API/Hugging Face remain available alternatives. Provider selection is config-driven only.
 - **Storyboard failures must not corrupt the shot plan.**
 - **Privacy first** — no external AI/API calls unless the user explicitly configures them.

@@ -11,7 +11,7 @@ from oneshot.config import settings
 
 router = APIRouter(prefix="/providers", tags=["providers"])
 
-ProviderName = Literal["gemini", "ollama", "huggingface"]
+ProviderName = Literal["gemini", "ollama", "huggingface", "litert"]
 
 
 class ProviderUpdate(BaseModel):
@@ -40,14 +40,23 @@ class PingResponse(BaseModel):
 
 
 def _status() -> ProvidersStatus:
-    llm_model = (
-        settings.GEMINI_MODEL if settings.LLM_PROVIDER == "gemini" else settings.LLM_MODEL
-    )
-    emb_model = (
-        settings.GEMINI_EMBEDDING_MODEL
-        if settings.EMBEDDING_PROVIDER == "gemini"
-        else settings.EMBEDDING_MODEL
-    )
+    if settings.LLM_PROVIDER == "gemini":
+        llm_model = settings.GEMINI_MODEL
+    elif settings.LLM_PROVIDER == "huggingface":
+        llm_model = settings.HF_LLM_MODEL
+    elif settings.LLM_PROVIDER == "litert":
+        llm_model = settings.LITERT_LLM_MODEL
+    else:
+        llm_model = settings.LLM_MODEL
+
+    if settings.EMBEDDING_PROVIDER == "gemini":
+        emb_model = settings.GEMINI_EMBEDDING_MODEL
+    elif settings.EMBEDDING_PROVIDER == "huggingface":
+        emb_model = settings.HF_EMBEDDING_MODEL
+    elif settings.EMBEDDING_PROVIDER == "litert":
+        emb_model = settings.LITERT_EMBEDDING_MODEL
+    else:
+        emb_model = settings.EMBEDDING_MODEL
     return ProvidersStatus(
         llm=ProviderInfo(provider=settings.LLM_PROVIDER, model=llm_model),
         embeddings=ProviderInfo(provider=settings.EMBEDDING_PROVIDER, model=emb_model),

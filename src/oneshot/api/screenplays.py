@@ -151,7 +151,7 @@ async def full_pipeline_stream(screenplay_id: int, session: DbSession, provider:
                     yield await queue.get()
                 try:
                     scenes = pipeline_task.result()
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 - surface provider/validation errors to the UI
                     yield f"event: error\ndata: {json.dumps({'message': str(exc)})}\n\n"
                     break
                 screenplay = screenplay_service.get_screenplay(screenplay_id, session)

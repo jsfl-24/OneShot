@@ -1,6 +1,6 @@
 """Full pipeline: LLM scene detection + structured analysis of all scenes + film metadata."""
 
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 from sqlmodel import Session
 

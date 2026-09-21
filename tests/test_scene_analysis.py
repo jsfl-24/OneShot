@@ -373,7 +373,7 @@ async def test_full_pipeline_stream_emits_progress(client, monkeypatch):
     assert "analyzing_screenplay" in body
     assert body.count('"total_scenes"') == 1
 
-    complete_block = [b for b in body.split("event:") if b.startswith(" complete")][0]
+    complete_block = next(b for b in body.split("event:") if b.startswith(" complete"))
     import json as _json
     complete_data = _json.loads(complete_block.split("data: ", 1)[1].strip())
     assert complete_data["total_scenes"] == 4
