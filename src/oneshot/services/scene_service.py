@@ -1,6 +1,5 @@
 """Scene analysis and LLM-based scene detection service."""
 
-import json
 from typing import Any
 
 from sqlmodel import Session, select
@@ -25,17 +24,6 @@ def list_scenes(screenplay_id: int, session: Session) -> list[Scene]:
     return list(session.exec(statement).all())
 
 
-def _to_json(value: list[str]) -> str:
-    return json.dumps(value)
-
-
-def _from_json(value: str) -> list[str]:
-    try:
-        return json.loads(value)
-    except (TypeError, json.JSONDecodeError):
-        return []
-
-
 def to_dict(scene: Scene) -> dict[str, Any]:
     return {
         "id": scene.id,
@@ -45,9 +33,9 @@ def to_dict(scene: Scene) -> dict[str, Any]:
         "location": scene.location,
         "time_of_day": scene.time_of_day,
         "raw_text": scene.raw_text,
-        "characters": _from_json(scene.characters),
-        "actions": _from_json(scene.actions),
-        "dialogue": _from_json(scene.dialogue),
+        "characters": list(scene.characters or []),
+        "actions": list(scene.actions or []),
+        "dialogue": list(scene.dialogue or []),
         "narrative_context": scene.narrative_context,
         "analyzed": scene.analyzed,
     }
@@ -64,9 +52,9 @@ async def analyze_scene(
         raise NotFoundError(f"Scene {scene_id} not found")
 
     result = await analyze_scene_ai(scene.raw_text, provider=provider)
-    scene.characters = _to_json(result.characters)
-    scene.actions = _to_json(result.actions)
-    scene.dialogue = _to_json(result.dialogue)
+    scene.characters = list(result.characters)
+    scene.actions = list(result.actions)
+    scene.dialogue = list(result.dialogue)
     scene.narrative_context = result.narrative_context
     scene.analyzed = True
     session.add(scene)

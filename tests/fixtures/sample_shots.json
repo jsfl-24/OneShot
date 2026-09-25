@@ -1,0 +1,41 @@
+[
+  {
+    "shot_type": "Wide",
+    "camera_angle": "Eye Level",
+    "lens": "50mm",
+    "camera_movement": "Static",
+    "duration": 5,
+    "characters": ["JANE", "MARK"],
+    "dialogue": null,
+    "action": "JANE and MARK face each other across a table.",
+    "visual_description": "A wide shot of the coffee shop table, both characters visible.",
+    "continuity_notes": "establish geography of the table",
+    "director_notes": ""
+  },
+  {
+    "shot_type": "Medium Close-Up",
+    "camera_angle": "Eye Level",
+    "lens": "50mm",
+    "camera_movement": "Static",
+    "duration": 4,
+    "characters": ["JANE"],
+    "dialogue": "I cannot believe you are late again.",
+    "action": "JANE glares at MARK.",
+    "visual_description": "JANE in a medium close-up, tense expression.",
+    "continuity_notes": "maintain eyeline with previous shot",
+    "director_notes": "hold on JANE's eyes"
+  },
+  {
+    "shot_type": "Medium",
+    "camera_angle": "Eye Level",
+    "lens": "50mm",
+    "camera_movement": "Static",
+    "duration": 4,
+    "characters": ["MARK"],
+    "dialogue": "I am sorry, I lost track of time.",
+    "action": "MARK lowers his eyes.",
+    "visual_description": "MARK, apologetic, slightly lower frame.",
+    "continuity_notes": "opposite eyeline, reverse on MARK",
+    "director_notes": ""
+  }
+]

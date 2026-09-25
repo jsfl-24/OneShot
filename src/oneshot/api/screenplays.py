@@ -14,20 +14,17 @@ from oneshot.schemas import (
     SceneListResponse,
     SceneRead,
     ScreenplayResponse,
+    ShotBatchGenerateRequest,
+    ShotListResponse,
 )
-from oneshot.services import pipeline_service, scene_service, screenplay_service
+from oneshot.services import pipeline_service, scene_service, screenplay_service, shot_service
 from oneshot.services.errors import NotFoundError
 
 router = APIRouter(prefix="/screenplays", tags=["screenplays"])
 
 
 def _screenplay_response(s) -> ScreenplayResponse:
-    import json
-    chars = []
-    try:
-        chars = json.loads(s.characters)
-    except (TypeError, json.JSONDecodeError):
-        pass
+    chars = list(s.characters or [])
     return ScreenplayResponse(
         id=s.id,
         project_id=s.project_id,
@@ -126,7 +123,12 @@ async def analyze_screenplay(screenplay_id: int, session: DbSession, provider: s
 
 
 @router.post("/{screenplay_id}/full-pipeline-stream")
-async def full_pipeline_stream(screenplay_id: int, session: DbSession, provider: str | None = None):
+async def full_pipeline_stream(
+    screenplay_id: int,
+    session: DbSession,
+    provider: str | None = None,
+    generate_shots: bool = False,
+):
     """Run the full pipeline and stream progress via Server-Sent Events."""
 
     async def event_stream():
@@ -137,7 +139,11 @@ async def full_pipeline_stream(screenplay_id: int, session: DbSession, provider:
 
         pipeline_task = asyncio.create_task(
             pipeline_service.run_full_pipeline_stream(
-                screenplay_id, session, provider=provider, on_progress=on_progress
+                screenplay_id,
+                session,
+                provider=provider,
+                generate_shots=generate_shots,
+                on_progress=on_progress,
             )
         )
 
@@ -176,14 +182,111 @@ async def full_pipeline_stream(screenplay_id: int, session: DbSession, provider:
 
 
 @router.post("/{screenplay_id}/full-pipeline", response_model=SceneListResponse)
-async def full_pipeline(screenplay_id: int, session: DbSession, provider: str | None = None):
-    """LLM-detect scenes, analyze all scenes, and extract film metadata."""
+async def full_pipeline(
+    screenplay_id: int,
+    session: DbSession,
+    provider: str | None = None,
+    generate_shots: bool = False,
+):
+    """LLM-detect scenes, analyze all scenes, and extract film metadata.
+
+    When ``generate_shots`` is true, a shot plan is also generated for every scene.
+    """
     try:
         scenes = await pipeline_service.run_full_pipeline(
-            screenplay_id, session, provider=provider
+            screenplay_id,
+            session,
+            provider=provider,
+            generate_shots=generate_shots,
         )
     except HTTPException:
         raise
     except (NotFoundError, ValueError, RuntimeError, httpx.RequestError, httpx.HTTPStatusError) as exc:
         raise http_error(exc)
     return _scene_list_response(screenplay_id, scenes)
+
+
+@router.post("/{screenplay_id}/generate-shots", response_model=list[ShotListResponse])
+async def generate_shots_for_screenplay(
+    screenplay_id: int,
+    session: DbSession,
+    payload: ShotBatchGenerateRequest | None = None,
+    provider: str | None = None,
+):
+    """Generate (or regenerate) shot plans for every scene in a screenplay."""
+    if screenplay_service.get_screenplay(screenplay_id, session) is None:
+        raise HTTPException(status_code=404, detail=f"Screenplay {screenplay_id} not found")
+    constraints = payload.constraints if payload else None
+    replace_existing = payload.replace_existing if payload else False
+    try:
+        return await shot_service.generate_shots_for_screenplay(
+            session,
+            screenplay_id,
+            constraints=constraints,
+            provider=provider,
+            replace_existing=replace_existing,
+        )
+    except HTTPException:
+        raise
+    except (NotFoundError, ValueError, RuntimeError, httpx.RequestError, httpx.HTTPStatusError) as exc:
+        raise http_error(exc)
+
+
+@router.post("/{screenplay_id}/generate-shots-stream")
+async def generate_shots_for_screenplay_stream(
+    screenplay_id: int,
+    session: DbSession,
+    payload: ShotBatchGenerateRequest | None = None,
+    provider: str | None = None,
+):
+    """Batch-generate shot plans for every scene, streaming progress as SSE."""
+    if screenplay_service.get_screenplay(screenplay_id, session) is None:
+        raise HTTPException(status_code=404, detail=f"Screenplay {screenplay_id} not found")
+    constraints = payload.constraints if payload else None
+    replace_existing = payload.replace_existing if payload else False
+
+    async def event_stream():
+        queue: asyncio.Queue = asyncio.Queue()
+
+        async def on_progress(payload: dict):
+            await queue.put(f"event: progress\ndata: {json.dumps(payload)}\n\n")
+
+        task = asyncio.create_task(
+            shot_service.generate_shots_for_screenplay(
+                session,
+                screenplay_id,
+                constraints=constraints,
+                provider=provider,
+                replace_existing=replace_existing,
+                on_progress=on_progress,
+            )
+        )
+
+        while True:
+            while not queue.empty():
+                yield await queue.get()
+            done, _ = await asyncio.wait({task}, timeout=0.25)
+            if done:
+                while not queue.empty():
+                    yield await queue.get()
+                try:
+                    results = task.result()
+                except Exception as exc:  # noqa: BLE001 - surface errors to the UI
+                    yield f"event: error\ndata: {json.dumps({'message': str(exc)})}\n\n"
+                    break
+                payload = {
+                    "plans": [r.model_dump(mode="json") for r in results],
+                    "total_scenes": len(results),
+                    "screenplay_id": screenplay_id,
+                }
+                yield f"event: complete\ndata: {json.dumps(payload)}\n\n"
+                break
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )

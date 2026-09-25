@@ -3,12 +3,14 @@
 import httpx
 from fastapi import HTTPException
 
-from oneshot.services.errors import NotFoundError
+from oneshot.services.errors import ConflictError, NotFoundError
 
 
 def http_error(exc: Exception) -> HTTPException:
     if isinstance(exc, NotFoundError):
         return HTTPException(status_code=404, detail=str(exc))
+    if isinstance(exc, ConflictError):
+        return HTTPException(status_code=409, detail=str(exc))
     if isinstance(exc, httpx.HTTPStatusError):
         detail = f"LLM provider error ({exc.response.status_code}): {exc.response.text[:300]}"
         return HTTPException(status_code=502, detail=detail)

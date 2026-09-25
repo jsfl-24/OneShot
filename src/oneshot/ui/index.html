@@ -13,7 +13,7 @@
     <div class="masthead-inner">
       <div class="masthead-title-block">
         <h1 class="masthead-title">OneShot</h1>
-        <p class="masthead-sub">Screenplay to shot list, step by step</p>
+        <p class="masthead-sub">Screenplay to shot list</p>
       </div>
       <div class="masthead-actions">
         <button type="button" id="settings-toggle" class="btn ghost" aria-expanded="false" aria-controls="settings-panel">
@@ -57,117 +57,183 @@
     </div>
   </section>
 
-  <div class="app-shell">
-    <aside class="sidebar">
-      <nav class="steps-nav" aria-label="Workflow steps">
-        <ul>
-          <li class="step is-active" data-step="1">
-            <span class="step-num" aria-hidden="true">1</span>
-            <span class="step-label">Project</span>
-          </li>
-          <li class="step" data-step="2">
-            <span class="step-num" aria-hidden="true">2</span>
-            <span class="step-label">Upload</span>
-          </li>
-          <li class="step" data-step="3">
-            <span class="step-num" aria-hidden="true">3</span>
-            <span class="step-label">Pipeline</span>
-          </li>
-          <li class="step" data-step="4">
-            <span class="step-num" aria-hidden="true">4</span>
-            <span class="step-label">Review</span>
-          </li>
-        </ul>
-      </nav>
-    </aside>
-
-    <main class="wizard">
-      <div class="progress-bar-wrap" id="progress-container" hidden>
-        <div class="progress-track">
-          <div class="progress-bar" id="progress-bar"></div>
+  <div class="workspace">
+    <aside class="sidebar-left" aria-label="Project and screenplay navigation">
+      <section class="sidebar-section" aria-labelledby="projects-heading">
+        <div class="sidebar-heading">
+          <h2 id="projects-heading">Projects</h2>
+          <span class="sidebar-count" id="project-count" aria-hidden="true">0</span>
         </div>
-        <span class="progress-label" id="progress-label"></span>
-      </div>
-
-      <div class="error-banner" id="error-banner" hidden></div>
-
-      <section class="step-panel is-active" data-panel="1">
-        <div class="panel-head">
-          <h2 class="panel-title">Create or choose a project</h2>
-          <p class="panel-note">A project owns its screenplays, scenes, and shot plan.</p>
-        </div>
-
-        <form id="project-form" class="inline-form">
-          <input type="text" id="project-name" placeholder="Project name" required>
-          <input type="text" id="project-desc" placeholder="Short description (optional)">
+        <form id="project-form" class="sidebar-form">
+          <label class="field">
+            <span class="field-label">Project name</span>
+            <input type="text" id="project-name" placeholder="e.g. Night Shift" required>
+          </label>
+          <label class="field">
+            <span class="field-label">Description <span class="field-optional">optional</span></span>
+            <input type="text" id="project-desc" placeholder="A short description">
+          </label>
           <button type="submit" class="btn primary">Create project</button>
         </form>
-
         <ul id="project-list" class="card-list" aria-label="Projects"></ul>
-        <p id="project-empty" class="empty-state">No projects yet. Create one to begin.</p>
-
-        <div class="step-actions">
-          <button type="button" class="btn primary" id="step1-next" data-goto="2" disabled>Continue to Upload</button>
-        </div>
+        <div id="project-empty" class="empty-state empty-state-compact">No projects yet. Create one to begin.</div>
       </section>
 
-      <section class="step-panel" data-panel="2">
-        <div class="panel-head">
-          <h2 class="panel-title">Upload a screenplay</h2>
-          <p class="panel-note" id="screenplay-note">Select a project first.</p>
+      <section class="sidebar-section" aria-labelledby="screenplays-heading">
+        <div class="sidebar-heading">
+          <h2 id="screenplays-heading">Screenplays</h2>
+          <span class="sidebar-count" id="screenplay-count" aria-hidden="true">0</span>
         </div>
-
-        <form id="upload-form" class="inline-form" hidden>
+        <p class="sidebar-note" id="screenplay-note">Select a project first.</p>
+        <form id="upload-form" class="sidebar-form upload-form" hidden>
           <label class="file-field">
             <input type="file" id="screenplay-file" accept=".pdf,.docx,.txt" required>
-            <span class="file-picker">Choose file…</span>
+            <span class="file-picker">Choose screenplay…</span>
           </label>
           <button type="submit" id="upload-btn" class="btn primary">Upload screenplay</button>
         </form>
-
         <ul id="screenplay-list" class="card-list" aria-label="Screenplays"></ul>
-        <p id="screenplay-empty" class="empty-state">Upload a screenplay to begin.</p>
-
-        <div class="step-actions">
-          <button type="button" class="btn ghost" data-goto="1">Back</button>
-          <button type="button" class="btn primary" id="step2-next" data-goto="3" disabled>Continue to Pipeline</button>
-        </div>
+        <div id="screenplay-empty" class="empty-state empty-state-compact">Upload a screenplay to begin.</div>
       </section>
+    </aside>
 
-      <section class="step-panel" data-panel="3">
+    <main class="content">
+      <div class="error-banner" id="error-banner" role="alert" hidden></div>
+      <nav class="tabbar" role="tablist" aria-label="Workspace views">
+        <button type="button" id="pipeline-tab" class="tab is-active" data-tab="pipeline" role="tab" aria-selected="true" aria-controls="panel-pipeline">Pipeline</button>
+        <button type="button" id="scenes-tab" class="tab" data-tab="scenes" role="tab" aria-selected="false" aria-controls="panel-scenes">Scenes</button>
+        <button type="button" id="shots-tab" class="tab" data-tab="shots" role="tab" aria-selected="false" aria-controls="panel-shots">Shots</button>
+        <button type="button" id="constraints-tab" class="tab" data-tab="constraints" role="tab" aria-selected="false" aria-controls="panel-constraints">Constraints</button>
+      </nav>
+
+      <section class="tab-panel is-active" data-tab-panel="pipeline" id="panel-pipeline" role="tabpanel" aria-labelledby="pipeline-tab">
         <div class="panel-head">
-          <h2 class="panel-title">Run the pipeline</h2>
-          <p class="panel-note" id="pipeline-note">Detect scenes, analyze the screenplay, and extract film metadata.</p>
+          <h2 class="panel-title">Pipeline</h2>
+          <p class="panel-note" id="pipeline-note">Select a screenplay to detect scenes, analyze the script, and extract film metadata.</p>
         </div>
-
         <div class="pipeline-actions">
           <button type="button" id="btn-full-pipeline" class="btn primary">Run full pipeline</button>
           <button type="button" id="btn-detect" class="btn ghost">Detect scenes</button>
+          <label class="checkbox-label" for="pipeline-generate-shots">
+            <input type="checkbox" id="pipeline-generate-shots">
+            <span>Generate shots at end of pipeline</span>
+          </label>
         </div>
-
         <div id="screenplay-meta" class="meta-panel"></div>
-        <p id="screenplay-meta-empty" class="empty-state">Metadata appears after analysis.</p>
-
-        <div class="step-actions">
-          <button type="button" class="btn ghost" data-goto="2">Back</button>
-          <button type="button" class="btn primary" id="step3-next" data-goto="4" disabled>Review Scenes</button>
-        </div>
+        <div id="screenplay-meta-empty" class="empty-state empty-state-panel"></div>
       </section>
 
-      <section class="step-panel" data-panel="4">
+      <section class="tab-panel" data-tab-panel="scenes" id="panel-scenes" role="tabpanel" aria-labelledby="scenes-tab" hidden>
         <div class="panel-head">
-          <h2 class="panel-title">Review scenes</h2>
+          <h2 class="panel-title">Scenes</h2>
           <p class="panel-note" id="scene-note">Select a screenplay to see its detected scenes.</p>
         </div>
-
         <div id="scene-list" class="scene-list"></div>
-        <p id="scene-empty" class="empty-state">No scenes to show.</p>
+        <div id="scene-empty" class="empty-state empty-state-panel"></div>
+      </section>
 
-        <div class="step-actions">
-          <button type="button" class="btn ghost" data-goto="3">Back to Pipeline</button>
+      <section class="tab-panel" data-tab-panel="shots" id="panel-shots" role="tabpanel" aria-labelledby="shots-tab" hidden>
+        <div class="panel-head">
+          <h2 class="panel-title">Shots</h2>
+          <p class="panel-note">Generate a shot plan for the selected screenplay, then refine the details that matter on set.</p>
         </div>
+        <div class="shot-batch-actions">
+          <button type="button" id="btn-generate-all" class="btn primary">Generate shots for all scenes</button>
+          <label class="checkbox-label" for="batch-replace">
+            <input type="checkbox" id="batch-replace">
+            <span>Replace existing drafts</span>
+          </label>
+        </div>
+        <div id="shot-warnings" class="shot-warnings" role="status" aria-live="polite"></div>
+        <div id="shot-scene-list" class="scene-list"></div>
+        <div id="shot-empty" class="empty-state empty-state-panel"></div>
+      </section>
+
+      <section class="tab-panel" data-tab-panel="constraints" id="panel-constraints" role="tabpanel" aria-labelledby="constraints-tab" hidden>
+        <div class="panel-head">
+          <h2 class="panel-title">Constraints</h2>
+          <p class="panel-note">Set production limits once, then tune them for an individual scene when the story needs a different texture.</p>
+        </div>
+        <details id="project-constraints" class="constraints-panel">
+          <summary>Project constraints</summary>
+          <form id="project-constraints-form" class="constraint-form" data-constraint-form="project">
+            <div class="constraint-grid">
+              <label class="field constraint-field">
+                <span class="field-label">Location constraints</span>
+                <input type="text" id="location-constraints" name="location_constraints" data-constraint-field="location_constraints">
+              </label>
+              <label class="field constraint-field">
+                <span class="field-label">Available lenses (comma-separated)</span>
+                <input type="text" id="available-lenses" name="available_lenses" data-constraint-field="available_lenses">
+              </label>
+              <fieldset class="constraint-field constraint-field-wide">
+                <legend class="field-label">Camera movement allowed</legend>
+                <div class="choice-grid">
+                  <label class="choice-label"><input type="checkbox" id="movement-static" name="camera_movement_allowed" value="Static" data-constraint-field="camera_movement_allowed"> Static</label>
+                  <label class="choice-label"><input type="checkbox" id="movement-pan" name="camera_movement_allowed" value="Pan" data-constraint-field="camera_movement_allowed"> Pan</label>
+                  <label class="choice-label"><input type="checkbox" id="movement-tilt" name="camera_movement_allowed" value="Tilt" data-constraint-field="camera_movement_allowed"> Tilt</label>
+                  <label class="choice-label"><input type="checkbox" id="movement-dolly" name="camera_movement_allowed" value="Dolly" data-constraint-field="camera_movement_allowed"> Dolly</label>
+                  <label class="choice-label"><input type="checkbox" id="movement-track" name="camera_movement_allowed" value="Track" data-constraint-field="camera_movement_allowed"> Track</label>
+                  <label class="choice-label"><input type="checkbox" id="movement-crane" name="camera_movement_allowed" value="Crane" data-constraint-field="camera_movement_allowed"> Crane</label>
+                  <label class="choice-label"><input type="checkbox" id="movement-handheld" name="camera_movement_allowed" value="Handheld" data-constraint-field="camera_movement_allowed"> Handheld</label>
+                </div>
+              </fieldset>
+              <fieldset class="constraint-field">
+                <legend class="field-label">Angles possible</legend>
+                <div class="choice-grid">
+                  <label class="choice-label"><input type="checkbox" id="high-angle-possible" name="high_angle_possible" data-constraint-field="high_angle_possible"> High angle</label>
+                  <label class="choice-label"><input type="checkbox" id="low-angle-possible" name="low_angle_possible" data-constraint-field="low_angle_possible"> Low angle</label>
+                </div>
+              </fieldset>
+              <label class="field constraint-field">
+                <span class="field-label">Equipment constraints</span>
+                <input type="text" id="equipment-constraints" name="equipment_constraints" data-constraint-field="equipment_constraints">
+              </label>
+              <label class="field constraint-field">
+                <span class="field-label">Director preferences</span>
+                <input type="text" id="director-preferences" name="director_preferences" data-constraint-field="director_preferences">
+              </label>
+              <label class="field constraint-field constraint-field-wide">
+                <span class="field-label">Additional notes</span>
+                <textarea id="additional-notes" name="additional_notes" data-constraint-field="additional_notes" rows="4"></textarea>
+              </label>
+            </div>
+            <div class="constraint-actions">
+              <button type="submit" class="btn primary" id="save-project-constraints">Save project constraints</button>
+              <button type="button" class="btn ghost" id="reset-project-constraints">Reset to defaults</button>
+            </div>
+          </form>
+        </details>
+        <section class="scene-constraints-section" aria-labelledby="scene-constraints-heading">
+          <div class="section-heading">
+            <h3 id="scene-constraints-heading">Scene overrides</h3>
+            <span class="section-note">Effective values are shown with the fields that differ from the project.</span>
+          </div>
+          <div id="scene-constraints-list" class="scene-constraints-list"></div>
+          <div id="scene-constraints-empty" class="empty-state empty-state-panel"></div>
+        </section>
       </section>
     </main>
+
+    <aside class="activity-console" id="activity-console" aria-label="Activity console">
+      <div class="console-heading">
+        <h3>Activity</h3>
+        <span class="console-live"><span class="console-live-dot" aria-hidden="true"></span>Live</span>
+      </div>
+      <div class="task-card" id="task-card" hidden aria-live="polite" aria-busy="false">
+        <div class="task-card-top">
+          <span id="task-label">Working</span>
+          <span id="task-percent">0%</span>
+        </div>
+        <div class="task-track" aria-hidden="true">
+          <div class="task-bar" id="task-bar"></div>
+        </div>
+        <div class="task-detail" id="task-detail">Working…</div>
+        <div class="task-elapsed" id="task-elapsed">00:00</div>
+      </div>
+      <ol id="activity-log" class="activity-log"></ol>
+      <div class="activity-empty" id="activity-empty">Activity will appear here.</div>
+    </aside>
   </div>
 
   <script src="app.js"></script>

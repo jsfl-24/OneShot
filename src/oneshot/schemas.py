@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # --- Enums ---
 
@@ -135,10 +135,10 @@ class SceneResponse(BaseModel):
 
 class ProductionConstraints(BaseModel):
     location_constraints: str | None = None
-    camera_movement_allowed: list[CameraMovement] = [CameraMovement.STATIC]
-    high_angle_possible: bool = False
-    low_angle_possible: bool = False
-    available_lenses: list[str] = ["50mm"]
+    camera_movement_allowed: list[CameraMovement] | None = [CameraMovement.STATIC]
+    high_angle_possible: bool | None = False
+    low_angle_possible: bool | None = False
+    available_lenses: list[str] | None = ["50mm"]
     equipment_constraints: str | None = None
     director_preferences: str | None = None
     additional_notes: str | None = None
@@ -146,9 +146,31 @@ class ProductionConstraints(BaseModel):
 
 # --- Shot ---
 
+def shot_ref(scene_number: int, shot_number: int) -> str:
+    """Human-readable shot identifier, e.g. \"Scene 01 - Shot 03\"."""
+    return f"Scene {scene_number:02d} - Shot {shot_number:02d}"
+
+
+class AIShotData(BaseModel):
+    """Structured LLM output for a single shot (before ids/status are assigned)."""
+
+    shot_type: ShotType
+    camera_angle: CameraAngle
+    lens: str = Field(min_length=1)
+    camera_movement: CameraMovement
+    duration: int = Field(ge=1, le=120)  # seconds, AI-suggested; always filmmaker-editable later
+    characters: list[str] = []
+    dialogue: str | None = None
+    action: str = Field(min_length=1)
+    visual_description: str = Field(min_length=1)
+    continuity_notes: str | None = None
+    director_notes: str | None = None
+
+
 class Shot(BaseModel):
-    id: str
-    scene_id: str
+    id: int
+    scene_id: int
+    scene_number: int  # for display only; derived from the linked scene
     shot_number: int
     shot_type: ShotType
     camera_angle: CameraAngle
@@ -162,12 +184,26 @@ class Shot(BaseModel):
     continuity_notes: str | None = None
     director_notes: str | None = None
     status: ShotStatus = ShotStatus.DRAFT
+    ref: str = ""  # "Scene 01 - Shot 01"; filled by the service
 
 
 class ShotListResponse(BaseModel):
     shots: list[Shot]
-    scene_id: str
+    scene_id: int
+    scene_number: int
     scene_heading: str
+    warnings: list[str] = []
+
+
+class ShotGenerateRequest(BaseModel):
+    scene_id: int
+    constraints: ProductionConstraints | None = None
+    replace_existing: bool = False
+
+
+class ShotBatchGenerateRequest(BaseModel):
+    constraints: ProductionConstraints | None = None
+    replace_existing: bool = False
 
 
 class ShotUpdate(BaseModel):

@@ -44,8 +44,14 @@ async def generate(
     provider: str | None = None,
     temperature: float | None = None,
     max_tokens: int | None = None,
+    json_schema: dict | None = None,
 ) -> str:
-    """Generate text using the configured or requested LLM provider."""
+    """Generate text using the configured or requested LLM provider.
+
+    ``json_schema`` requests provider-native structured/JSON output where the
+    provider supports it (best-effort; parsing + Pydantic validation remains
+    the enforcement point).
+    """
     provider = provider or settings.LLM_PROVIDER
     if model is None:
         if provider == "gemini":
@@ -60,13 +66,13 @@ async def generate(
     max_tokens = settings.LLM_MAX_TOKENS if max_tokens is None else max_tokens
 
     if provider == "gemini":
-        return await _generate_gemini(prompt, model)
+        return await _generate_gemini(prompt, model, json_schema)
     if provider == "ollama":
-        return await _generate_ollama(prompt, model)
+        return await _generate_ollama(prompt, model, json_schema)
     if provider == "huggingface":
-        return await _generate_huggingface(prompt, model, temperature, max_tokens)
+        return await _generate_huggingface(prompt, model, temperature, max_tokens, json_schema)
     if provider == "litert":
-        return await _generate_litert(prompt, model, max_tokens)
+        return await _generate_litert(prompt, model, max_tokens, json_schema)
     _raise_unknown(provider)
 
 
@@ -98,7 +104,7 @@ async def embed(
     _raise_unknown(provider)
 
 
-async def _generate_gemini(prompt: str, model: str) -> str:
+async def _generate_gemini(prompt: str, model: str, json_schema: dict | None = None) -> str:
     api_key = settings.GEMINI_API_KEY
     if not api_key:
         raise RuntimeError(
@@ -109,7 +115,14 @@ async def _generate_gemini(prompt: str, model: str) -> str:
     from google import genai
 
     client = genai.Client(api_key=api_key)
-    response = await client.aio.models.generate_content(model=model, contents=prompt)
+    config = None
+    if json_schema is not None:
+        config = genai.types.GenerateContentConfig(
+            response_mime_type="application/json", response_schema=json_schema
+        )
+    response = await client.aio.models.generate_content(
+        model=model, contents=prompt, config=config
+    )
     text = (response.text or "").strip()
     if not text:
         detail_parts = []
@@ -144,19 +157,22 @@ async def _generate_gemini(prompt: str, model: str) -> str:
     return text
 
 
-async def _generate_ollama(prompt: str, model: str) -> str:
+async def _generate_ollama(prompt: str, model: str, json_schema: dict | None = None) -> str:
+    payload: dict = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+        "options": {
+            "temperature": settings.LLM_TEMPERATURE,
+            "num_predict": settings.LLM_MAX_TOKENS,
+        },
+    }
+    if json_schema is not None:
+        payload["format"] = "json"
     async with _client() as client:
         response = await client.post(
             f"{settings.OLLAMA_BASE_URL}/api/generate",
-            json={
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": settings.LLM_TEMPERATURE,
-                    "num_predict": settings.LLM_MAX_TOKENS,
-                },
-            },
+            json=payload,
         )
         response.raise_for_status()
     data = response.json()
@@ -167,7 +183,7 @@ async def _generate_ollama(prompt: str, model: str) -> str:
 
 
 async def _generate_huggingface(
-    prompt: str, model: str, temperature: float, max_tokens: int
+    prompt: str, model: str, temperature: float, max_tokens: int, json_schema: dict | None = None
 ) -> str:
     token = settings.HF_TOKEN
     if not token:
@@ -176,16 +192,19 @@ async def _generate_huggingface(
             "(set the HF_TOKEN environment variable)."
         )
 
+    payload: dict = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    if json_schema is not None:
+        payload["response_format"] = {"type": "json_object"}
     async with _client() as client:
         response = await client.post(
             f"{settings.HF_BASE_URL}/v1/chat/completions",
             headers={"Authorization": f"Bearer {token}"},
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            },
+            json=payload,
         )
         response.raise_for_status()
     data = response.json()
@@ -203,15 +222,18 @@ async def _generate_huggingface(
     return text
 
 
-async def _generate_litert(prompt: str, model: str, max_tokens: int) -> str:
+async def _generate_litert(prompt: str, model: str, max_tokens: int, json_schema: dict | None = None) -> str:
+    payload: dict = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+    }
+    if json_schema is not None:
+        payload["response_format"] = {"type": "json_object"}
     async with _client() as client:
         response = await client.post(
             f"{settings.LITERT_LLM_URL}/v1/chat/completions",
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": max_tokens,
-            },
+            json=payload,
         )
         response.raise_for_status()
     data = response.json()

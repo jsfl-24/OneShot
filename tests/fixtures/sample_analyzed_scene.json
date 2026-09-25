@@ -1,0 +1,14 @@
+{
+  "id": 1,
+  "screenplay_id": 1,
+  "scene_number": 1,
+  "heading": "INT. COFFEE SHOP - DAY",
+  "location": "COFFEE SHOP",
+  "time_of_day": "DAY",
+  "raw_text": "INT. COFFEE SHOP - DAY\nCoffee steam rises.\nJANE\nI cannot believe you are late again.\nMARK\nI am sorry, I lost track of time.",
+  "characters": ["JANE", "MARK"],
+  "actions": ["Coffee steam rises.", "JANE confronts MARK."],
+  "dialogue": ["JANE: I cannot believe you are late again.", "MARK: I am sorry, I lost track of time."],
+  "narrative_context": "A tense reunion between JANE and MARK.",
+  "analyzed": true
+}

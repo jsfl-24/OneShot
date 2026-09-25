@@ -53,27 +53,48 @@ Scene text:
 
 SHOT_GENERATION_PROMPT = """You are a professional cinematographer and shot planner.
 
-Given the following scene, generate a shot list that tells the story visually.
+Transform the given scene into a cinematic shot list. Your shots must tell the
+story visually and be filmable within the production constraints.
 
-Scene:
-{scene_json}
+Use cinematic reasoning, never mechanical text splitting:
+- A new shot starts when the subject or character focus changes.
+- A new shot starts when a new action beat or narrative event begins.
+- A new shot starts when a meaningful dialogue exchange begins or the speaker changes.
+- A new shot starts when the story requires different visual information.
+- A new shot starts when a camera position, angle, or coverage change is needed for continuity.
+- Respect the 180-degree rule, eyelines, shot/reverse-shot coverage, and spatial consistency
+  between consecutive shots.
 
-Production constraints:
+Shot count: scale to the scene. A short beat needs 1-2 shots; a dense scene with several
+beats typically needs 3-8 shots. Do not pad for length and do not compress an involved
+scene into a single shot.
+
+Production constraints (these are hard limits - do not violate them):
 {constraints_json}
 
-Generate a list of shots. Each shot must include:
-- shot_type (e.g. Wide, Medium, Close-Up)
-- camera_angle (e.g. Eye Level, High Angle)
-- lens (e.g. 50mm, 85mm)
-- camera_movement (e.g. Static, Pan, Dolly)
-- duration (seconds)
-- characters
-- dialogue (if any)
-- action
-- visual_description
-- continuity_notes
+Scene to plan:
+{scene_json}
 
-Return as valid JSON array of shots.
+Rules for every shot:
+- shot_type, camera_angle, and camera_movement MUST use one of the exact enum values
+  provided in the schema below. Do not invent values, abbreviations, or free text
+  (e.g. use "Medium Close-Up", never "MCU").
+- lens: a real focal length such as "50mm" or "85mm"; it MUST be in the constraint's
+  available lenses list when constraints are provided.
+- duration: a realistic duration in whole seconds (2-12), scaled to action complexity.
+  Durations are always editable later by the filmmaker.
+- characters: ALL-CAPS names actually present in the scene's character list.
+- action: the concrete on-screen action of the shot.
+- visual_description: what the frame should look like at a glance.
+- continuity_notes: describe continuity relative to the neighboring shots WITHOUT
+  referencing absolute shot numbers (the numbers are assigned later), e.g.
+  "maintain eyeline with previous shot", "screen direction stays consistent".
+- director_notes: optional flourish or staging intent; empty string when not needed.
+
+Return ONLY a valid JSON array of shot objects. Every object must conform exactly to
+this schema (all required keys present):
+
+{schema_json}
 """
 
 

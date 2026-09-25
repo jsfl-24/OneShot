@@ -1,6 +1,5 @@
 """Screenplay ingestion and parsing service."""
 
-import json
 import shutil
 import uuid
 from pathlib import Path
@@ -98,10 +97,6 @@ def list_scenes(screenplay_id: int, session: Session) -> list[Scene]:
     return list(session.exec(statement).all())
 
 
-def _to_json(value: list[str]) -> str:
-    return json.dumps(value)
-
-
 async def analyze_screenplay(
     screenplay_id: int,
     session: Session,
@@ -117,7 +112,7 @@ async def analyze_screenplay(
     screenplay.one_liner = result.one_liner
     screenplay.genre = result.genre
     screenplay.story_abstract = result.story_abstract
-    screenplay.characters = _to_json(result.characters)
+    screenplay.characters = list(result.characters)
     screenplay.analyzed = True
     session.add(screenplay)
     session.commit()

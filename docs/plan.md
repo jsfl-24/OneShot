@@ -1,6 +1,6 @@
 # OneShot Development Plan
 
-> Authoritative task checklist derived from `ONESHOT.md`.  
+> Authoritative task checklist derived from `ONESHOT.md`.
 > Mark phases/tasks done as they are completed. Next phase should not start until the current one passes verification.
 
 ---
@@ -13,21 +13,21 @@ Build a local-first, AI-assisted filmmaking pre-production system that ingests s
 
 ## Tech Stack
 
-| Layer              | Technology                                 |
-| ------------------ | ------------------------------------------ |
-| Language           | Python                                     |
-| Env/Package Mgmt   | uv — virtualenv + dependency manager        |
-| API Framework      | FastAPI                                    |
-| Validation/Schemas | Pydantic                                    |
-| DB                 | SQLite via SQLModel                        |
-| PDF Extraction     | PyMuPDF                                    |
-| DOCX Extraction    | python-docx                                |
-| Vector DB          | Qdrant                                     |
-| LLM (deployment)   | LiteRT local serving — **Gemma 4 E2B** (`litert_llm_service` on :8101)                                        |
-| LLM (development)  | LiteRT local serving — Gemma 4 E2B (default `LLM_PROVIDER=litert`; Ollama/Gemma 4 E4B and Gemini API still available) |
-| RAG Embeddings (deployment) | EmbeddingGemma 300M via LiteRT (`embeddinggemma-service` on :8100)                             |
-| RAG Embeddings (development) | EmbeddingGemma 300M via LiteRT (default `EMBEDDING_PROVIDER=litert`; Ollama `nomic-embed-text` and Gemini `gemini-embedding-2` still available) |
-| Version Control    | Git + GitHub                               |
+| Layer                        | Technology                                                                                                                                           |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Language                     | Python                                                                                                                                               |
+| Env/Package Mgmt             | uv — virtualenv + dependency manager                                                                                                                |
+| API Framework                | FastAPI                                                                                                                                              |
+| Validation/Schemas           | Pydantic                                                                                                                                             |
+| DB                           | SQLite via SQLModel                                                                                                                                  |
+| PDF Extraction               | PyMuPDF                                                                                                                                              |
+| DOCX Extraction              | python-docx                                                                                                                                          |
+| Vector DB                    | Qdrant                                                                                                                                               |
+| LLM (deployment)             | LiteRT local serving —**Gemma 4 E2B** (`litert_llm_service` on :8101)                                                                       |
+| LLM (development)            | LiteRT local serving — Gemma 4 E2B (default`LLM_PROVIDER=litert`; Ollama/Gemma 4 E4B and Gemini API still available)                              |
+| RAG Embeddings (deployment)  | EmbeddingGemma 300M via LiteRT (`embeddinggemma-service` on :8100)                                                                                 |
+| RAG Embeddings (development) | EmbeddingGemma 300M via LiteRT (default`EMBEDDING_PROVIDER=litert`; Ollama `nomic-embed-text` and Gemini `gemini-embedding-2` still available) |
+| Version Control              | Git + GitHub                                                                                                                                         |
 
 ---
 
@@ -49,14 +49,14 @@ Build a local-first, AI-assisted filmmaking pre-production system that ingests s
 
 **Status:** DONE
 
-- [x] Establish project structure (`src/oneshot/` with `api/`, `services/`, `parsers/`, `ai/`)
-- [x] Configure FastAPI app with lifespan (`main.py`)
-- [x] Define SQLModel persistence models (`db_models.py`): Project, Screenplay, Scene
-- [x] Define Pydantic API schemas (`schemas.py`): request/response models, enums (ShotType, CameraAngle, etc.)
-- [x] Set up configuration via env vars (`config.py`): DB URL, LLM/embedding provider endpoints (LiteRT/Ollama/Gemini/HF), Qdrant URL
-- [x] Set up SQLite database init (`db.py`)
-- [x] Add `/health` endpoint
-- [x] Add project CRUD API (`/projects`): create, list, get
+- [X] Establish project structure (`src/oneshot/` with `api/`, `services/`, `parsers/`, `ai/`)
+- [X] Configure FastAPI app with lifespan (`main.py`)
+- [X] Define SQLModel persistence models (`db_models.py`): Project, Screenplay, Scene
+- [X] Define Pydantic API schemas (`schemas.py`): request/response models, enums (ShotType, CameraAngle, etc.)
+- [X] Set up configuration via env vars (`config.py`): DB URL, LLM/embedding provider endpoints (LiteRT/Ollama/Gemini/HF), Qdrant URL
+- [X] Set up SQLite database init (`db.py`)
+- [X] Add `/health` endpoint
+- [X] Add project CRUD API (`/projects`): create, list, get
 
 ---
 
@@ -64,17 +64,17 @@ Build a local-first, AI-assisted filmmaking pre-production system that ingests s
 
 **Status:** DONE
 
-- [x] PDF extraction via PyMuPDF (`parsers/pdf.py`)
-- [x] DOCX extraction via python-docx (`parsers/docx.py`)
-- [x] Plain text extraction (`parsers/text.py`)
-- [x] Unified document extractor (`parsers/document.py`)
-- [x] Scene heading detection with regex (`parsers/scene_detector.py`)
-- [x] Line-by-line classifier: heading, action, character, parenthetical, dialogue
-- [x] Screenplay upload endpoint (`POST /screenplays/projects/{id}/upload`)
-- [x] Auto-extract text + detect scenes on upload
-- [x] Persist screenplay and scenes to DB
-- [x] List/retrieve screenplays and scenes endpoints
-- [x] Tests: document parsers, scene detector, screenplay service, API
+- [X] PDF extraction via PyMuPDF (`parsers/pdf.py`)
+- [X] DOCX extraction via python-docx (`parsers/docx.py`)
+- [X] Plain text extraction (`parsers/text.py`)
+- [X] Unified document extractor (`parsers/document.py`)
+- [X] Scene heading detection with regex (`parsers/scene_detector.py`)
+- [X] Line-by-line classifier: heading, action, character, parenthetical, dialogue
+- [X] Screenplay upload endpoint (`POST /screenplays/projects/{id}/upload`)
+- [X] Auto-extract text + detect scenes on upload
+- [X] Persist screenplay and scenes to DB
+- [X] List/retrieve screenplays and scenes endpoints
+- [X] Tests: document parsers, scene detector, screenplay service, API
 
 ---
 
@@ -83,51 +83,77 @@ Build a local-first, AI-assisted filmmaking pre-production system that ingests s
 **Status:** DONE
 
 ### Goals
+
 Extract structured data from raw scene text using the LLM: characters, actions, dialogue, and narrative context.
 
 ### Tasks
-- [x] Design and test the scene analysis prompt (`ai/prompts.py` — expand `SCENE_ANALYSIS_PROMPT`)
-- [x] Define a Pydantic model for structured scene analysis output (characters, actions, dialogue, narrative_context)
-- [x] Wire `ai/scene_analyzer.py` to return validated Pydantic output (not raw dict)
-- [x] Implement `scene_service.py` — analyze scene, validate, return structured result
-- [x] Flesh out `POST /scenes/{scene_id}/analyze` endpoint — accept scene_id, run analysis, return result
-- [x] Persist analyzed scene data back to the Scene table (add columns: characters, actions, dialogue, narrative_context)
-- [x] Generate a DB migration for the new Scene columns
-- [x] Add tests: scene analyzer unit test, service test, API test
-- [x] Verify end-to-end: upload screenplay -> detect scenes -> analyze a scene -> return structured data
-- [x] LLM scene detection: new scenes recovered (typo tolerance) and merged, ordered by document position
-- [x] `POST /screenplays/{id}/detect-scenes` and `POST /screenplays/{id}/full-pipeline` endpoints
-- [x] Temp UI buttons: per-scene Analyze, per-screenplay LLM Detection / Full Pipeline
-- [x] **Screenplay-level metadata extraction**: one-liner, genre, story_abstract, characters via `SCREENPLAY_ANALYSIS_PROMPT`
-- [x] **New DB columns on Screenplay**: `one_liner`, `genre`, `story_abstract`, `characters`, `analyzed`
-- [x] **New endpoint**: `POST /screenplays/{id}/analyze` for film metadata extraction
-- [x] **Updated full-pipeline**: also extracts film metadata after scene analysis
-- [x] **Scene detection regex tightening**: requires 2+ chars after INT/EXT prefix, rejects short/false headings
-- [x] **LLM merge dedup**: filters invalid headings (no INT/EXT prefix or no dash), checks text overlap (70% threshold)
-- [x] **Scene numbering**: sequential 1, 2, 3... across entire screenplay, `total_scenes` field in API response
-- [x] **Updated ScreenplayResponse**: includes `one_liner`, `genre`, `story_abstract`, `characters`, `analyzed`
+
+- [X] Design and test the scene analysis prompt (`ai/prompts.py` — expand `SCENE_ANALYSIS_PROMPT`)
+- [X] Define a Pydantic model for structured scene analysis output (characters, actions, dialogue, narrative_context)
+- [X] Wire `ai/scene_analyzer.py` to return validated Pydantic output (not raw dict)
+- [X] Implement `scene_service.py` — analyze scene, validate, return structured result
+- [X] Flesh out `POST /scenes/{scene_id}/analyze` endpoint — accept scene_id, run analysis, return result
+- [X] Persist analyzed scene data back to the Scene table (add columns: characters, actions, dialogue, narrative_context)
+- [X] Generate a DB migration for the new Scene columns
+- [X] Add tests: scene analyzer unit test, service test, API test
+- [X] Verify end-to-end: upload screenplay -> detect scenes -> analyze a scene -> return structured data
+- [X] LLM scene detection: new scenes recovered (typo tolerance) and merged, ordered by document position
+- [X] `POST /screenplays/{id}/detect-scenes` and `POST /screenplays/{id}/full-pipeline` endpoints
+- [X] Temp UI buttons: per-scene Analyze, per-screenplay LLM Detection / Full Pipeline
+- [X] **Screenplay-level metadata extraction**: one-liner, genre, story_abstract, characters via `SCREENPLAY_ANALYSIS_PROMPT`
+- [X] **New DB columns on Screenplay**: `one_liner`, `genre`, `story_abstract`, `characters`, `analyzed`
+- [X] **New endpoint**: `POST /screenplays/{id}/analyze` for film metadata extraction
+- [X] **Updated full-pipeline**: also extracts film metadata after scene analysis
+- [X] **Scene detection regex tightening**: requires 2+ chars after INT/EXT prefix, rejects short/false headings
+- [X] **LLM merge dedup**: filters invalid headings (no INT/EXT prefix or no dash), checks text overlap (70% threshold)
+- [X] **Scene numbering**: sequential 1, 2, 3... across entire screenplay, `total_scenes` field in API response
+- [X] **Updated ScreenplayResponse**: includes `one_liner`, `genre`, `story_abstract`, `characters`, `analyzed`
 
 ---
 
 ## Phase 4: Scene to Shot Segmentation
 
-**Status:** NOT STARTED
+**Status:** COMPLETE (pending end-to-end manual verification with a live LLM)
 
 ### Goals
+
 Generate a constraint-aware, cinematic shot list from a structured scene using the LLM.
 
 ### Tasks
-- [ ] Design and test the shot generation prompt (`ai/prompts.py` — expand `SHOT_GENERATION_PROMPT`)
-- [ ] Define `Shot` DB model in `db_models.py` with all fields per spec (shot_type, camera_angle, lens, movement, duration, characters, dialogue, action, visual_description, continuity_notes, director_notes, status)
-- [ ] Generate DB migration for Shot table
-- [ ] Define `ProductionConstraints` DB model for persisting constraints per project
-- [ ] Generate DB migration for ProductionConstraints table
-- [ ] Implement `shot_generator.py` — call LLM, parse response, validate against Pydantic `Shot` schema
-- [ ] Implement `shot_service.py` — orchestrate generation, validate each shot, persist to DB
-- [ ] Flesh out `POST /shots/generate` endpoint — accept scene_id + optional constraints, return validated shots
-- [ ] Ensure each shot links back to its scene (traceability)
-- [ ] Add tests: shot generator unit test, validation test, service test, API test
+
+- [X] Design and test the shot generation prompt (`ai/prompts.py` — expand `SHOT_GENERATION_PROMPT`)
+- [X] Define `Shot` DB model in `db_models.py` with all fields per spec (shot_type, camera_angle, lens, movement, duration, characters, dialogue, action, visual_description, continuity_notes, director_notes, status)
+- [X] Generate DB migration for Shot table
+- [X] Define `ProductionConstraints` DB model for persisting constraints per project
+- [X] Generate DB migration for ProductionConstraints table
+- [X] Implement `shot_generator.py` — call LLM, parse response, validate against Pydantic `Shot` schema
+- [X] Implement `shot_service.py` — orchestrate generation, validate each shot, persist to DB
+- [X] Flesh out `POST /shots/generate` endpoint — accept scene_id + optional constraints, return validated shots
+- [X] Ensure each shot links back to its scene (traceability)
+- [X] Add tests: shot generator unit test, validation test, service test, API test
 - [ ] Verify end-to-end: upload screenplay -> detect scenes -> analyze scene -> generate shots -> shots persisted
+
+### Delivered endpoints (Phase 4)
+
+- `POST /shots/generate` — generate shots for one scene (accepts `generate_shots` content + inline constraints + `language`)
+- `GET /shots/{shot_id}` — retrieve one shot
+- `GET /scenes/{scene_id}/shots` — list shots for a scene
+- `POST /screenplays/{id}/generate-shots` — generate shots for all scenes (batch)
+- `POST /screenplays/{id}/generate-shots-stream` — SSE variant with per-scene progress
+- `PUT` / `GET /projects/{project_id}/constraints` — project-level production constraints
+- `PUT` / `GET /projects/{project_id}/scenes/{scene_id}/constraints` — per-scene overrides; GET returns merged (effective) constraints
+- Full pipeline (`run_full_pipeline` / SSE) gained a `generate_shots` flag with progress in the 60-95% band
+
+### Phase 4 decisions (implemented)
+
+- Shot identity: internal global int `id`; display reference `"Scene 01 - Shot 01"`
+- Duration: LLM-suggested (2-12s), editable by filmmaker (no LLM auto-correction)
+- Continuity: auto-generated notes comparing adjacent shots
+- Prompt: hybrid — cinematic principles + enum guardrails; full JSON schema example injected; all injects are JSON (`{scene_json}`, `{constraints_json}`, `{schema_json}`)
+- Structured output: Pydantic post-validation + provider JSON mode (`json_schema` threaded through all 4 providers)
+- Constraints: project defaults + per-scene field-level overrides; NULL DB columns mean "inherit" (project -> scene merge in `effective_constraints`); applied via prompt injection + post-generation validation (violations excluded and reported in `warnings`, never silently discarded)
+- Regeneration: `replace_existing=false` default -> 409 unless shots replaced; approved shots are never deleted (drafts only)
+- Migration `4e619e382aba` also converts `Scene`/`Screenplay` list columns (characters, actions, dialogue) to JSON; sqlite needs `render_as_batch=True` in `alembic/env.py`
 
 ---
 
@@ -136,9 +162,11 @@ Generate a constraint-aware, cinematic shot list from a structured scene using t
 **Status:** NOT STARTED
 
 ### Goals
+
 Full CRUD on shots with validation and status management (draft/approved).
 
 ### Tasks
+
 - [ ] `GET /shots/{shot_id}` — retrieve a single shot
 - [ ] `GET /scenes/{scene_id}/shots` — list all shots for a scene
 - [ ] `PATCH /shots/{shot_id}` — update individual shot fields
@@ -157,14 +185,17 @@ Full CRUD on shots with validation and status management (draft/approved).
 **Status:** NOT STARTED
 
 ### Goals
+
 Enhance shot quality with cinematic knowledge retrieval. **RAG is mandatory** and must be integrated into the shot-generation pipeline. Implementation stays replaceable, but the pipeline is only complete with RAG enabled.
 
 ### Development vs. Deployment (RAG / LLM serving)
+
 - **Default (local, privacy-first):** RAG and LLM serving run **fully local through LiteRT** — LLM via `litert_llm_service` (Gemma 4 E2B on `:8101`), embeddings via `embeddinggemma-service` (EmbeddingGemma 300M on `:8100`). No third-party hosted AI — screenplay privacy is preserved.
 - **Alternatives (config-driven):** Ollama (Gemma 4 E4B, `nomic-embed-text`) for fully-local dev without the `.litertlm` runtime, or online providers (Gemini API via `google-genai`, Hugging Face Inference Providers router) as a development-time convenience. Provider choice does not change application or RAG code paths.
 - The provider must be selected through configuration (`LLM_PROVIDER`, embeddings config) and must not change application or RAG code paths.
 
 ### Tasks
+
 - [ ] Set up Qdrant client connection (configurable URL)
 - [ ] Design cinematic knowledge schema (shot types, camera techniques, lens characteristics, movement semantics)
 - [ ] Populate Qdrant with reference cinematic knowledge (seed data)
@@ -182,9 +213,11 @@ Enhance shot quality with cinematic knowledge retrieval. **RAG is mandatory** an
 **Status:** NOT STARTED
 
 ### Goals
+
 Generate storyboard prompts from approved shots and optionally generate images. Failures must not corrupt the shot plan.
 
 ### Tasks
+
 - [ ] Define `StoryboardPrompt` and `StoryboardImage` DB models
 - [ ] Generate DB migration
 - [ ] Implement prompt builder: take approved shot -> generate image generation prompt
@@ -201,9 +234,11 @@ Generate storyboard prompts from approved shots and optionally generate images. 
 **Status:** NOT STARTED
 
 ### Goals
+
 Build UI only after backend is stable. Prioritize core workflow over polish.
 
 ### Tasks
+
 - [ ] Load `frontend-design` skill and establish design system (`DESIGN.md`)
 - [ ] Project dashboard — list projects, create new project
 - [ ] Screenplay upload view — drag-and-drop, format selection
@@ -235,33 +270,33 @@ The backend is ready for frontend when it can:
 
 ## API Endpoint Checklist
 
-| Endpoint                                    | Phase | Status  |
-| ------------------------------------------- | ----- | ------- |
-| `GET /health`                               | 1     | DONE    |
-| `POST /projects`                            | 1     | DONE    |
-| `GET /projects`                             | 1     | DONE    |
-| `GET /projects/{id}`                        | 1     | DONE    |
-| `POST /screenplays/projects/{id}/upload`    | 2     | DONE    |
-| `GET /screenplays/projects/{id}`            | 2     | DONE    |
-| `GET /screenplays/{id}`                     | 2     | DONE    |
-| `GET /screenplays/{id}/scenes`       | 2     | DONE    |
-| `POST /scenes/{id}/analyze`          | 3     | DONE    |
-| `GET /scenes/{id}`                   | 3     | DONE    |
-| `POST /screenplays/{id}/detect-scenes` | 3   | DONE    |
-| `POST /screenplays/{id}/full-pipeline` | 3   | DONE    |
-| `POST /screenplays/{id}/analyze`       | 3   | DONE    |
-| `POST /shots/generate`                      | 4     | STUB    |
-| `GET /shots/{id}`                           | 5     | TODO    |
-| `GET /scenes/{id}/shots`                    | 5     | TODO    |
-| `PATCH /shots/{id}`                         | 5     | STUB    |
-| `PUT /shots/{id}/reorder`                   | 5     | TODO    |
-| `DELETE /shots/{id}`                        | 5     | TODO    |
-| `POST /shots/{id}/approve`                  | 5     | TODO    |
-| `POST /shots/{id}/storyboard`               | 7     | TODO    |
-| `GET /shots/{id}/storyboard`                | 7     | TODO    |
-| `POST /projects/{id}/constraints`           | 4     | TODO    |
-| `GET /projects/{id}/constraints`            | 4     | TODO    |
-| `GET /export/json`                          | 7+    | STUB    |
+| Endpoint                                   | Phase | Status |
+| ------------------------------------------ | ----- | ------ |
+| `GET /health`                            | 1     | DONE   |
+| `POST /projects`                         | 1     | DONE   |
+| `GET /projects`                          | 1     | DONE   |
+| `GET /projects/{id}`                     | 1     | DONE   |
+| `POST /screenplays/projects/{id}/upload` | 2     | DONE   |
+| `GET /screenplays/projects/{id}`         | 2     | DONE   |
+| `GET /screenplays/{id}`                  | 2     | DONE   |
+| `GET /screenplays/{id}/scenes`           | 2     | DONE   |
+| `POST /scenes/{id}/analyze`              | 3     | DONE   |
+| `GET /scenes/{id}`                       | 3     | DONE   |
+| `POST /screenplays/{id}/detect-scenes`   | 3     | DONE   |
+| `POST /screenplays/{id}/full-pipeline`   | 3     | DONE   |
+| `POST /screenplays/{id}/analyze`         | 3     | DONE   |
+| `POST /shots/generate`                   | 4     | STUB   |
+| `GET /shots/{id}`                        | 5     | TODO   |
+| `GET /scenes/{id}/shots`                 | 5     | TODO   |
+| `PATCH /shots/{id}`                      | 5     | STUB   |
+| `PUT /shots/{id}/reorder`                | 5     | TODO   |
+| `DELETE /shots/{id}`                     | 5     | TODO   |
+| `POST /shots/{id}/approve`               | 5     | TODO   |
+| `POST /shots/{id}/storyboard`            | 7     | TODO   |
+| `GET /shots/{id}/storyboard`             | 7     | TODO   |
+| `POST /projects/{id}/constraints`        | 4     | TODO   |
+| `GET /projects/{id}/constraints`         | 4     | TODO   |
+| `GET /export/json`                       | 7+    | STUB   |
 
 ---
 

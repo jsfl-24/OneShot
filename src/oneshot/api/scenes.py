@@ -5,8 +5,8 @@ from fastapi import APIRouter, HTTPException
 
 from oneshot.api.deps import DbSession
 from oneshot.api.errors import http_error
-from oneshot.schemas import SceneRead
-from oneshot.services import scene_service
+from oneshot.schemas import SceneRead, Shot
+from oneshot.services import scene_service, shot_service
 from oneshot.services.errors import NotFoundError
 
 router = APIRouter(prefix="/scenes", tags=["scenes"])
@@ -38,3 +38,14 @@ def get_scene(scene_id: int, session: DbSession):
     if scene is None:
         raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
     return _to_read(scene_service.to_dict(scene))
+
+
+@router.get("/{scene_id}/shots", response_model=list[Shot])
+def list_scene_shots(scene_id: int, session: DbSession):
+    scene = scene_service.get_scene(scene_id, session)
+    if scene is None:
+        raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
+    return [
+        shot_service.to_schema(shot, scene.scene_number)
+        for shot in shot_service.list_shots(scene_id, session)
+    ]

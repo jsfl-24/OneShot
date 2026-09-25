@@ -1,8 +1,8 @@
 # OneShot — Development Status
 
-> Last updated: 2026-09-21
-> Current phase: **Phase 3 — Structured Scene Understanding (DONE)**
-> Next phase: **Phase 4 — Scene to Shot Segmentation**
+> Last updated: 2026-09-25
+> Current phase: **Phase 4 — Scene to Shot Segmentation (DONE)**
+> Next phase: **Phase 5 — Shot Editing and Validation**
 
 This file is a temporary, living log of project development status. It is
 updated after each phase milestone and whenever a significant issue or
@@ -18,7 +18,7 @@ we actually stand and what went wrong along the way.
 | 1 | Backend Foundation | DONE | FastAPI app, SQLite/SQLModel, schemas, config, /health, projects CRUD, tests |
 | 2 | Document to Scene Extraction | DONE | PDF/DOCX/TXT ingest, scene detection, persistence, services, API, tests |
 | 3 | Structured Scene Understanding | DONE | LLM detection + typo tolerance, validated analysis, full pipeline, UI buttons, migration, tests |
-| 4 | Scene to Shot Segmentation | NOT STARTED | Blocked by Phase 3 completion |
+| 4 | Scene to Shot Segmentation | DONE | Shot + ProductionConstraints models, generator, validation, continuity, constraint merge, endpoints, pipeline hook, tests |
 | 5 | Shot Editing and Validation | NOT STARTED | — |
 | 6 | Cinematic Knowledge / RAG | NOT STARTED | Mandatory, uses online/local provider |
 | 7 | Storyboard Generation | NOT STARTED | — |
@@ -84,8 +84,37 @@ Phase 8 (frontend).
 - Zero new dependencies, no build step
 - Tests: `tests/test_api_ui.py` (3 tests: index, assets, API non-regression)
 
----
+### Phase 4 — Scene to Shot Segmentation (DONE)
 
+Implemented:
+- `Shot` + `ProductionConstraints` DB models; `Scene`/`Screenplay` character lists
+  moved to JSON columns (migration `4e619e382aba`; sqlite needs `render_as_batch=True`)
+- `ai/shot_generator.py` — calls LLM with injected JSON scene + constraints +
+  schema, parses response, validates each shot against `AIShotData`
+- `ai/llm.py.generate(..., json_schema=...)` threaded through all 4 providers
+  (gemini response_schema, ollama json format, litert/HF json_object)
+- `services/shot_service.py` — validation (enums, lens/movement vs constraints,
+  character warnings, duration 1-120s), auto continuity notes between adjacent
+  shots, persistence, effective (merged) constraints, batch generation w/ progress
+- Constraint semantics: project defaults + per-scene field-level overrides; NULL
+  columns mean "inherit"; violations excluded + reported in `warnings` (409 on
+  re-generation unless `replace_existing=true`; approved shots never deleted)
+- Endpoints: `POST /shots/generate`, `GET /shots/{shot_id}`,
+  `GET /scenes/{scene_id}/shots`, `POST /screenplays/{id}/generate-shots` (+ SSE
+  stream), `PUT`/`GET` project + scene constraints; full pipeline gained
+  `generate_shots`
+- Tests: shot generator, validation, continuity, constraint merge, shots API,
+  constraints API, batch/stream, pipeline integration. Suite: 117 passed, ruff clean.
+- Temp UI: **redesigned to a single-page workspace** (replaces the 5-step wizard)
+  — project/screenplay picker left rail; Pipeline | Scenes | Shots | Constraints
+  tabs; live **activity console** (current-task card with % and elapsed mm:ss
+  timer + timestamped log, persisted to sessionStorage, SSE progress streams in
+  real time); disabled buttons show an instant hover tooltip with the reason
+  ("No scenes detected — run the pipeline first."); empty states get a contextual
+  CTA. `/ui` assets now served with `Cache-Control: no-cache` via ASGI middleware
+  to prevent stale `app.js`. (Verified live: /ui + assets 200 with no-cache.)
+
+---
 ## Issues & Decisions Log
 
 | Date | Phase | Area | Issue | Resolution |
@@ -109,7 +138,13 @@ Phase 8 (frontend).
 | 2026-09-13 | 3 | provider | Default provider switched to **Hugging Face online** (`LLM_PROVIDER=huggingface`) | Verified end-to-end (generate / detect-scenes / analyze / embed). Embeddings kept consistent at 768 dims. |
 | 2026-09-13 | 3 | config | Legacy `api-inference.huggingface.co` is retired; `google/gemma-4-e4b` and old nomic embedding id are invalid | Migrated to the **Inference Providers router** (`https://router.huggingface.co`): chat via `/v1/chat/completions`, embeddings via `/hf-inference/models/{model}/pipeline/feature-extraction`. LLM default `google/gemma-3-4b-it` (gemma-4 models on the router are reasoning-heavy, unsuitable for strict JSON fields); embedding default `BAAI/bge-base-en-v1.5` (768-dim, matches nomic/nomic-embed-text). |
 | 2026-09-13 | 3 | parse | LLM wraps JSON in markdown code fences | Added `ai/json_output.parse_json` used by scene detector + analyzer to strip fences before `json.loads`. |
-| 2026-09-12 | 4/5/7 | api | Shot generate/update, export endpoints are stubs returning "todo" data | OPEN — will be implemented in Phases 4, 5, and 7. |
+| 2026-09-12 | 4/5/7 | api | Shot generate/update, export endpoints are stubs returning "todo" data | Shot generate + shot list/get implemented in Phase 4 (2026-09-24); update/delete/approve still open (Phase 5), export open (Phase 7). |
+| 2026-09-24 | 4 | db | Shot + ProductionConstraints tables and JSON columns (Scene/Screenplay character lists) | Migration `4e619e382aba`; sqlite batch mode enabled (`render_as_batch=True`) because JSON column type alters need table rebuild. |
+| 2026-09-24 | 4 | ai | LLM provider JSON output | `json_schema` threaded through all providers (gemini response_schema, ollama format=json, litert/HF response_format json_object) + Pydantic post-validation never bypassed. |
+| 2026-09-24 | 4 | constraints | Partial per-scene override wiped project defaults (whole-row write + non-null defaults) | Nullable DB columns + `model_dump(exclude_unset=True)` writes + `_constraints_to_dict` skips NULLs; `effective_constraints` merges defaults → project → scene per field; GET endpoints return merged result. |
+| 2026-09-24 | 4 | api | Fake 502 in `test_generate_shots_conflicts_without_replace` (missing LLM mock) | Added `_mock_shots(monkeypatch)` in the conflict test; suite 117 passed, ruff clean. |
+| 2026-09-25 | 4 | ui/back | Constraint fields couldn't be "un-overridden" (nullable schema needed for inherit) | Made 4 `ProductionConstraints` fields nullable; temp UI step 5 "Shots" added (constraints forms, per-scene + batch generation via SSE, pipeline `generate_shots` toggle). Suite 120 passed, ruff clean. |
+| 2026-09-25 | 4 | ui | User: buttons greyed out with no reason; no visibility into what the system is doing after clicking; wizard flow too hidden | **Redesigned temp UI to single-page workspace** (Pipeline/Scenes/Shots/Constraints tabs) with live activity console (task %, elapsed timer, SSE progress, history log persisted to sessionStorage) and hover tooltips on disabled buttons explaining why. `/ui` served with `Cache-Control: no-cache` (ASGI middleware) to stop stale-app.js confusion. Suite 121 passed, ruff clean. |
 
 ---
 
@@ -126,6 +161,6 @@ Phase 8 (frontend).
 - Environment: `uv` — symlink `.venv` via `uv sync` (deps from `pyproject.toml`); activate with `uv run`
 - Test command: `uv run pytest`
 - Lint command: `uv run ruff check src tests`
-- Latest run: 87 passed, 2 warnings (deprecation), ruff clean (2026-09-21)
+- Latest run: 121 passed, 2 warnings (deprecation), ruff clean (2026-09-25)
 - Provider: default **LiteRT (local)** — Gemma 4 E2B (`gemma-4-E2B-it`) via `litert_llm_service` on `:8101`, EmbeddingGemma 300M via `embeddinggemma-service` on `:8100`.
 - Verified end-to-end with live LiteRT services (2026-09-21): `/providers/ping` (LLM + embeddings), project → screenplay upload → full pipeline → 4/4 scenes analyzed → screenplay metadata extracted.
