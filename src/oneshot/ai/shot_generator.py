@@ -11,6 +11,7 @@ from typing import Any
 from oneshot.ai.json_output import parse_json
 from oneshot.ai.llm import generate
 from oneshot.ai.prompts import SHOT_GENERATION_PROMPT
+from oneshot.config import settings
 from oneshot.schemas import AIShotData, CameraAngle, CameraMovement, ShotType
 
 
@@ -62,7 +63,13 @@ async def generate_shots(
         constraints_json=json.dumps(constraints or {}, indent=2),
         schema_json=json.dumps(schema, indent=2),
     )
-    response = await generate(prompt, provider=provider, model=model, json_schema=schema)
+    response = await generate(
+        prompt,
+        provider=provider,
+        model=model,
+        json_schema=schema,
+        max_tokens=settings.SHOT_MAX_TOKENS,
+    )
 
     try:
         data = parse_json(response)
@@ -76,6 +83,8 @@ async def generate_shots(
     for index, item in enumerate(data, start=1):
         if not isinstance(item, dict):
             raise ValueError(f"Shot {index} is not an object: {item!r}")  # noqa: TRY004
+        if "shot_type" not in item and "type" in item:
+            item["shot_type"] = item.pop("type")
         try:
             shots.append(AIShotData.model_validate(item))
         except Exception as exc:  # validation details are worth surfacing

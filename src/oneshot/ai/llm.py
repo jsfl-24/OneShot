@@ -23,13 +23,18 @@ import httpx
 
 from oneshot.config import settings
 
-_INFERENCE_TIMEOUT = httpx.Timeout(180.0, connect=10.0)
+_CONNECT_TIMEOUT = 10.0
 
 _SUPPORTED_PROVIDERS = ("gemini", "ollama", "huggingface", "litert")
 
 
+def _inference_timeout() -> httpx.Timeout:
+    """Read timeout from settings (providers differ wildly in decode speed)."""
+    return httpx.Timeout(float(settings.LLM_TIMEOUT_SECONDS), connect=_CONNECT_TIMEOUT)
+
+
 def _client() -> httpx.AsyncClient:
-    return httpx.AsyncClient(timeout=_INFERENCE_TIMEOUT)
+    return httpx.AsyncClient(timeout=_inference_timeout())
 
 
 def _raise_unknown(provider: str) -> None:

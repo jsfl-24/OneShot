@@ -19,6 +19,12 @@ class Settings:
     LLM_MODEL: str = os.getenv("LLM_MODEL", "gemma4:4b")
     LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", "0.7"))
     LLM_MAX_TOKENS: int = int(os.getenv("LLM_MAX_TOKENS", "4096"))
+    # Read timeout for provider HTTP calls — on-device LiteRT decodes slowly, so
+    # shot generation routinely needs minutes; 180s was too short (surfaced as a 502).
+    LLM_TIMEOUT_SECONDS: int = int(os.getenv("LLM_TIMEOUT_SECONDS", "600"))
+    # Output-token cap for shot-list generation — long shot lists otherwise run past
+    # the read timeout on slow local providers.
+    SHOT_MAX_TOKENS: int = int(os.getenv("SHOT_MAX_TOKENS", "3072"))
 
     # Embeddings (for RAG) — choose "litert" (local, default), "ollama" (local), "gemini" (online), or "huggingface" (online)
     EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "litert")

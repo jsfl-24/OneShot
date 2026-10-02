@@ -95,6 +95,18 @@ async def test_generate_shots_502_on_provider_error(client, monkeypatch):
     assert result.status_code == 502
 
 
+async def test_generate_shots_504_on_timeout(client, monkeypatch):
+    async def timing_out_generate(prompt, **kwargs):
+        raise httpx.ReadTimeout("timed out")
+
+    monkeypatch.setattr(shot_generator, "generate", timing_out_generate)
+    _, upload = _upload(client)
+    scene = _first_scene(client, upload)
+    result = client.post("/shots/generate", json={"scene_id": scene["id"]})
+    assert result.status_code == 504
+    assert "timed out" in result.json()["detail"]
+
+
 async def test_generate_shots_reports_rejected_shot(client, monkeypatch):
     bad = dict(SHOTS[0], lens="35mm")  # 35mm not in default "50mm" lenses
     await _mock_shots(monkeypatch, payload=[bad, SHOTS[1]])
@@ -120,6 +132,24 @@ async def test_generate_shots_respects_inline_constraints(client, monkeypatch):
     )
     assert response.status_code == 200
     assert len(response.json()["shots"]) == 1
+
+
+async def test_generate_shots_accepts_type_alias_for_shot_type(client, monkeypatch):
+    aliased = [
+        {("type" if k == "shot_type" else k): v for k, v in shot.items()} for shot in SHOTS
+    ]
+    await _mock_shots(monkeypatch, payload=aliased)
+    _, upload = _upload(client)
+    scene = _first_scene(client, upload)
+
+    response = client.post("/shots/generate", json={"scene_id": scene["id"]})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["warnings"] == []
+    assert [s["shot_type"] for s in body["shots"]] == [s["shot_type"] for s in SHOTS]
+
+    persisted = client.get(f"/scenes/{scene['id']}/shots").json()
+    assert [s["shot_type"] for s in persisted] == ["Wide", "Medium Close-Up", "Medium"]
 
 
 async def test_batch_generate_shots_for_all_scenes(client, monkeypatch):

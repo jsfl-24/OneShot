@@ -3,6 +3,7 @@
 import httpx
 from fastapi import HTTPException
 
+from oneshot.config import settings
 from oneshot.services.errors import ConflictError, NotFoundError
 
 
@@ -14,6 +15,15 @@ def http_error(exc: Exception) -> HTTPException:
     if isinstance(exc, httpx.HTTPStatusError):
         detail = f"LLM provider error ({exc.response.status_code}): {exc.response.text[:300]}"
         return HTTPException(status_code=502, detail=detail)
+    # TimeoutException subclasses RequestError, so it must be checked first.
+    if isinstance(exc, httpx.TimeoutException):
+        return HTTPException(
+            status_code=504,
+            detail=(
+                f"LLM generation timed out after {settings.LLM_TIMEOUT_SECONDS}s — "
+                "raise LLM_TIMEOUT_SECONDS or use a faster provider"
+            ),
+        )
     if isinstance(exc, httpx.RequestError):
         return HTTPException(status_code=502, detail=f"LLM provider unreachable: {exc}")
     if isinstance(exc, RuntimeError):

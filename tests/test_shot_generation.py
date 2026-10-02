@@ -60,6 +60,18 @@ async def test_generate_shots_rejects_invalid_enum(monkeypatch):
         await shot_generator.generate_shots(SCENE, CONSTRAINTS)
 
 
+async def test_generate_shots_alias_does_not_relax_value_validation(monkeypatch):
+    aliased = {("type" if k == "shot_type" else k): v for k, v in SHOTS[0].items()}
+    aliased["camera_angle"] = "Bogus Angle"
+
+    async def fake_generate(prompt, **kwargs):
+        return json.dumps([aliased])
+
+    monkeypatch.setattr(shot_generator, "generate", fake_generate)
+    with pytest.raises(ValueError, match="validation error"):
+        await shot_generator.generate_shots(SCENE, CONSTRAINTS)
+
+
 async def test_generate_shots_forwards_provider(monkeypatch):
     seen = {}
 

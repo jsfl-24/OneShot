@@ -147,6 +147,8 @@ Implemented:
 | 2026-09-25 | 4 | ui | User: buttons greyed out with no reason; no visibility into what the system is doing after clicking; wizard flow too hidden | **Redesigned temp UI to single-page workspace** (Pipeline/Scenes/Shots/Constraints tabs) with live activity console (task %, elapsed timer, SSE progress, history log persisted to sessionStorage) and hover tooltips on disabled buttons explaining why. `/ui` served with `Cache-Control: no-cache` (ASGI middleware) to stop stale-app.js confusion. Suite 121 passed, ruff clean. |
 | 2026-09-25 | 4 | ui | Console showed `api is not defined (0.0s)` — whole UI broken after redesign | The `api()` fetch helper was accidentally dropped during the app.js rewrite (20+ call sites, no definition → ReferenceError). Restored verbatim next to `jsonRequest`; added a `test_api_ui` regression asserting `function api(` exists. Suite 122 passed, ruff clean. |
 | 2026-09-25 | 1 | api | No way to delete a project | Added `DELETE /projects/{project_id}` — hard delete with explicit child-first cascade in new `services/project_service.py` (constraints → shots → scenes → screenplays → project using table FKs directly, since SQLite FK enforcement is off) + best-effort removal of uploaded source files (guarded to UPLOAD_DIR). Projects list now has a per-row ✕ Delete button (browser `confirm()`, activity-console task log, full workspace reset when the selected project is deleted). Suite 126 passed, ruff clean. |
+| 2026-09-25 | 4 | ai | Shots tab returned `502 LLM provider unreachable` after ~180.2s when generating | Root cause: LiteRT on-device decodes ~10 tok/s; a shot list needs 2.5-4k output tokens → 4-10 min, but `httpx.Timeout(180.0)` was hard-coded (ai/llm.py). Fixed: `LLM_TIMEOUT_SECONDS` (default 600, config.py), shot generation capped at `SHOT_MAX_TOKENS` (3072), and `TimeoutException` now maps to **504** ("raise LLM_TIMEOUT_SECONDS or use a faster provider") instead of the misleading 502 (kept for true connection errors). Suite 129 passed. |
+| 2026-09-25 | 4 | ai | Live shot generation failed `Shot 1 failed validation: shot_type Field required` even after timeout fix | The model reliably emits `"type"` instead of `"shot_type"` (all other keys match). Added a minimal key-aliasing pass before `AIShotData.model_validate` (type→shot_type only); value validation stays strict (genuine enum/value errors still fail). Verified live end-to-end on dev DB scene 5: analyze 17.9s → generate 93.6s → 4 shots persisted with `[]` warnings. Suite 131 passed, ruff clean. |
 
 ---
 
@@ -163,6 +165,6 @@ Implemented:
 - Environment: `uv` — symlink `.venv` via `uv sync` (deps from `pyproject.toml`); activate with `uv run`
 - Test command: `uv run pytest`
 - Lint command: `uv run ruff check src tests`
-- Latest run: 126 passed, 2 warnings (deprecation), ruff clean (2026-09-25)
+- Latest run: 131 passed, 2 warnings (deprecation), ruff clean (2026-09-25)
 - Provider: default **LiteRT (local)** — Gemma 4 E2B (`gemma-4-E2B-it`) via `litert_llm_service` on `:8101`, EmbeddingGemma 300M via `embeddinggemma-service` on `:8100`.
 - Verified end-to-end with live LiteRT services (2026-09-21): `/providers/ping` (LLM + embeddings), project → screenplay upload → full pipeline → 4/4 scenes analyzed → screenplay metadata extracted.

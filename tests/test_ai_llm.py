@@ -7,7 +7,7 @@ from types import ModuleType
 import httpx
 import pytest
 
-from oneshot.ai import llm
+from oneshot.ai import llm, shot_generator
 
 DEFAULT_GEMINI_MODEL = "gemma-4-26b-a4b-it"
 DEFAULT_GEMINI_EMBEDDING_MODEL = "gemini-embedding-2"
@@ -100,6 +100,16 @@ def _patch_genai(monkeypatch):
     monkeypatch.setitem(sys.modules, "google", fake_google)
     monkeypatch.setitem(sys.modules, "google.genai", fake_genai)
     return captured
+
+
+async def test_client_timeout_uses_configured_seconds(monkeypatch):
+    monkeypatch.undo()  # restore the real _client replaced by _patch_client
+    assert llm._inference_timeout().read == float(llm.settings.LLM_TIMEOUT_SECONDS)
+
+    monkeypatch.setattr(llm.settings, "LLM_TIMEOUT_SECONDS", 42)
+    client = llm._client()
+    assert client.timeout.read == 42
+    assert client.timeout.connect == llm._CONNECT_TIMEOUT
 
 
 async def test_generate_gemini_online(monkeypatch, _patch_genai):
@@ -281,3 +291,16 @@ def test_supported_providers_are_exposed():
         "huggingface",
         "litert",
     }
+
+
+async def test_generate_shots_caps_max_tokens(monkeypatch):
+    captured = {}
+
+    async def fake_generate(prompt, **kwargs):
+        captured.update(kwargs)
+        return "[]"
+
+    monkeypatch.setattr(shot_generator, "generate", fake_generate)
+    shots = await shot_generator.generate_shots({"heading": "INT. ROOM - DAY"})
+    assert shots == []
+    assert captured["max_tokens"] == shot_generator.settings.SHOT_MAX_TOKENS
