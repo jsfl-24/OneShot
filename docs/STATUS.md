@@ -145,6 +145,7 @@ Implemented:
 | 2026-09-24 | 4 | api | Fake 502 in `test_generate_shots_conflicts_without_replace` (missing LLM mock) | Added `_mock_shots(monkeypatch)` in the conflict test; suite 117 passed, ruff clean. |
 | 2026-09-25 | 4 | ui/back | Constraint fields couldn't be "un-overridden" (nullable schema needed for inherit) | Made 4 `ProductionConstraints` fields nullable; temp UI step 5 "Shots" added (constraints forms, per-scene + batch generation via SSE, pipeline `generate_shots` toggle). Suite 120 passed, ruff clean. |
 | 2026-09-25 | 4 | ui | User: buttons greyed out with no reason; no visibility into what the system is doing after clicking; wizard flow too hidden | **Redesigned temp UI to single-page workspace** (Pipeline/Scenes/Shots/Constraints tabs) with live activity console (task %, elapsed timer, SSE progress, history log persisted to sessionStorage) and hover tooltips on disabled buttons explaining why. `/ui` served with `Cache-Control: no-cache` (ASGI middleware) to stop stale-app.js confusion. Suite 121 passed, ruff clean. |
+| 2026-09-25 | 4 | ui | Console showed `api is not defined (0.0s)` — whole UI broken after redesign | The `api()` fetch helper was accidentally dropped during the app.js rewrite (20+ call sites, no definition → ReferenceError). Restored verbatim next to `jsonRequest`; added a `test_api_ui` regression asserting `function api(` exists. Suite 122 passed, ruff clean. |
 
 ---
 
@@ -161,6 +162,6 @@ Implemented:
 - Environment: `uv` — symlink `.venv` via `uv sync` (deps from `pyproject.toml`); activate with `uv run`
 - Test command: `uv run pytest`
 - Lint command: `uv run ruff check src tests`
-- Latest run: 121 passed, 2 warnings (deprecation), ruff clean (2026-09-25)
+- Latest run: 122 passed, 2 warnings (deprecation), ruff clean (2026-09-25)
 - Provider: default **LiteRT (local)** — Gemma 4 E2B (`gemma-4-E2B-it`) via `litert_llm_service` on `:8101`, EmbeddingGemma 300M via `embeddinggemma-service` on `:8100`.
 - Verified end-to-end with live LiteRT services (2026-09-21): `/providers/ping` (LLM + embeddings), project → screenplay upload → full pipeline → 4/4 scenes analyzed → screenplay metadata extracted.

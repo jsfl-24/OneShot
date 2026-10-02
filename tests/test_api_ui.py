@@ -47,3 +47,9 @@ def test_ui_javascript_uses_shot_and_constraint_endpoints(client):
         assert endpoint in response.text
     for function_marker in ("setActionState", "consumeSse", "data-tip"):
         assert function_marker in response.text
+
+
+def test_ui_javascript_defines_api_helper(client):
+    response = client.get("/ui/app.js")
+    assert response.status_code == 200
+    assert "function api(" in response.text

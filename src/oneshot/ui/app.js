@@ -142,6 +142,22 @@
     };
   }
 
+  async function api(path, options = {}) {
+    clearError();
+    const response = await fetch(path, options);
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      const detail =
+        data && data.detail
+          ? typeof data.detail === "string"
+            ? data.detail
+            : JSON.stringify(data.detail)
+          : `Request failed with ${response.status}`;
+      throw new Error(detail);
+    }
+    return data;
+  }
+
   function clearError() {
     if (!els.error) return;
     els.error.hidden = true;
