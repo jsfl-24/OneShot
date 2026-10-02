@@ -6,6 +6,8 @@ from sqlmodel import select
 from oneshot.api.deps import DbSession
 from oneshot.db_models import Project
 from oneshot.schemas import ProjectCreate, ProjectRead
+from oneshot.services import project_service
+from oneshot.services.errors import NotFoundError
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -30,3 +32,12 @@ def get_project(project_id: int, session: DbSession):
     if project is None:
         raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
     return project
+
+
+@router.delete("/{project_id}")
+def delete_project(project_id: int, session: DbSession):
+    try:
+        project_service.delete_project(project_id, session)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return {"id": project_id, "deleted": True}

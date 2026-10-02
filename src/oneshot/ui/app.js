@@ -486,11 +486,56 @@
         button.innerHTML += `<span class="entry-meta">${escapeHtml(project.description)}</span>`;
       }
       button.addEventListener("click", () => void selectProject(project.id));
-      item.appendChild(button);
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "entry-delete";
+      remove.textContent = "✕";
+      remove.setAttribute("aria-label", `Delete project "${project.name}"`);
+      remove.addEventListener("click", (event) => {
+        event.stopPropagation();
+        void deleteProject(project);
+      });
+      item.append(button, remove);
       els.projectList.appendChild(item);
     }
     highlightSelected(els.projectList, state.selectedProjectId);
     refreshActionStates();
+  }
+
+  async function deleteProject(project) {
+    if (!window.confirm(`Delete project "${project.name}" and all its data?`)) return;
+    const taskId = startTask(`Deleting project "${project.name}"…`);
+    try {
+      await api(`/projects/${project.id}`, { method: "DELETE" });
+      state.projects = state.projects.filter((item) => !sameId(item.id, project.id));
+      if (sameId(state.selectedProjectId, project.id)) {
+        state.selectedProjectId = null;
+        state.screenplays = [];
+        state.selectedScreenplayId = null;
+        state.scenes = [];
+        state.scenesLoadedFor = null;
+        state.screenplaysLoadedFor = null;
+        state.screenplaysLoadingFor = null;
+        state.projectConstraints = null;
+        state.projectConstraintsLoaded = false;
+        state.sceneConstraintsLoaded = {};
+        state.sceneEffectiveConstraints = {};
+        state.projectConstraintsLoading = false;
+        resetShotState();
+        fillConstraintForm(els.projectConstraintsForm, {});
+        els.screenplayNote.textContent = "Select a project first.";
+      }
+      renderProjects();
+      renderScreenplays();
+      renderScreenplayMeta();
+      renderScenes();
+      renderShotScenes();
+      renderSceneConstraints();
+      refreshActionStates();
+      endTask(true, `Project "${project.name}" deleted`, undefined, taskId);
+    } catch (error) {
+      failTask(error, taskId);
+    }
   }
 
   function renderScreenplays() {

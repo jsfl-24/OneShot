@@ -53,3 +53,10 @@ def test_ui_javascript_defines_api_helper(client):
     response = client.get("/ui/app.js")
     assert response.status_code == 200
     assert "function api(" in response.text
+
+
+def test_ui_javascript_has_project_delete(client):
+    response = client.get("/ui/app.js")
+    assert response.status_code == 200
+    for marker in ("entry-delete", "deleteProject", 'method: "DELETE"', "window.confirm"):
+        assert marker in response.text

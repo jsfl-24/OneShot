@@ -542,8 +542,16 @@ p {
   background: var(--panel);
 }
 
+#project-list li {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
 .entry-item {
   width: 100%;
+  min-width: 0;
+  flex: 1;
   padding: 11px 12px;
   border: 0;
   border-left: 3px solid transparent;
@@ -562,6 +570,29 @@ p {
 .entry-item.is-selected {
   border-left-color: var(--accent);
   background: var(--panel-raised);
+}
+
+.entry-delete {
+  align-self: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  margin-right: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.entry-delete:hover {
+  background: rgba(242, 117, 106, 0.16);
+  color: var(--danger);
 }
 
 .entry-from {

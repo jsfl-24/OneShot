@@ -56,7 +56,7 @@ Build a local-first, AI-assisted filmmaking pre-production system that ingests s
 - [X] Set up configuration via env vars (`config.py`): DB URL, LLM/embedding provider endpoints (LiteRT/Ollama/Gemini/HF), Qdrant URL
 - [X] Set up SQLite database init (`db.py`)
 - [X] Add `/health` endpoint
-- [X] Add project CRUD API (`/projects`): create, list, get
+- [X] Add project CRUD API (`/projects`): create, list, get, delete (cascade)
 
 ---
 
