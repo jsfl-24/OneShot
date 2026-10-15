@@ -113,7 +113,7 @@ Extract structured data from raw scene text using the LLM: characters, actions, 
 
 ## Phase 4: Scene to Shot Segmentation
 
-**Status:** COMPLETE (pending end-to-end manual verification with a live LLM)
+**Status:** COMPLETE (verified end-to-end with live LLM 2026-09-25; enhancements added same day)
 
 ### Goals
 
@@ -131,7 +131,12 @@ Generate a constraint-aware, cinematic shot list from a structured scene using t
 - [X] Flesh out `POST /shots/generate` endpoint — accept scene_id + optional constraints, return validated shots
 - [X] Ensure each shot links back to its scene (traceability)
 - [X] Add tests: shot generator unit test, validation test, service test, API test
-- [ ] Verify end-to-end: upload screenplay -> detect scenes -> analyze scene -> generate shots -> shots persisted
+- [X] Verify end-to-end: upload screenplay -> detect scenes -> analyze scene -> generate shots -> shots persisted
+- [X] Plain-English language style for shot content (action/visual_description/notes) in prompt
+- [X] Scene `context` injection (`first_scene`, `location_changed`, `new_characters`) + cinematography rules: establishing shot on location change (and first scene), emotional Close-Up, Extreme Close-Up character intro (≤2/scene)
+- [X] Pre-generation constraints dialog (per-scene + batch): Save & generate / Skip / Cancel; prefilled with effective constraints + per-field override state (applied iff differs from project defaults); scene edits → scene overrides, batch edits → project defaults
+- [X] Inline per-scene constraints panel next to generated shots (Shots tab)
+- [X] Robust payload normalization: `type`→`shot_type` alias + `{"type":"array","items":[...]}` envelope unwrap (value validation stays strict)
 
 ### Delivered endpoints (Phase 4)
 
@@ -285,17 +290,18 @@ The backend is ready for frontend when it can:
 | `POST /screenplays/{id}/detect-scenes`   | 3     | DONE   |
 | `POST /screenplays/{id}/full-pipeline`   | 3     | DONE   |
 | `POST /screenplays/{id}/analyze`         | 3     | DONE   |
-| `POST /shots/generate`                   | 4     | STUB   |
-| `GET /shots/{id}`                        | 5     | TODO   |
-| `GET /scenes/{id}/shots`                 | 5     | TODO   |
-| `PATCH /shots/{id}`                      | 5     | STUB   |
+| `POST /shots/generate`                   | 4     | DONE   |
+| `GET /shots/{id}`                        | 4     | DONE   |
+| `GET /scenes/{id}/shots`                 | 4     | DONE   |
+| `PATCH /shots/{id}`                      | 5     | TODO   |
 | `PUT /shots/{id}/reorder`                | 5     | TODO   |
 | `DELETE /shots/{id}`                     | 5     | TODO   |
 | `POST /shots/{id}/approve`               | 5     | TODO   |
 | `POST /shots/{id}/storyboard`            | 7     | TODO   |
 | `GET /shots/{id}/storyboard`             | 7     | TODO   |
-| `POST /projects/{id}/constraints`        | 4     | TODO   |
-| `GET /projects/{id}/constraints`         | 4     | TODO   |
+| `PUT /projects/{id}/constraints`         | 4     | DONE   |
+| `GET /projects/{id}/constraints`         | 4     | DONE   |
+| `DELETE /projects/{id}`                  | 1     | DONE   |
 | `GET /export/json`                       | 7+    | STUB   |
 
 ---

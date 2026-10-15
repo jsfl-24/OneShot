@@ -60,3 +60,19 @@ def test_ui_javascript_has_project_delete(client):
     assert response.status_code == 200
     for marker in ("entry-delete", "deleteProject", 'method: "DELETE"', "window.confirm"):
         assert marker in response.text
+
+
+def test_ui_constraints_dialog_and_inline_panel(client):
+    index = client.get("/ui")
+    script = client.get("/ui/app.js")
+    assert index.status_code == 200
+    assert script.status_code == 200
+    served = index.text + script.text
+    for marker in (
+        "constraints-dialog",
+        "cd-skip",
+        "cd-save-generate",
+        "scene-inline-constraints",
+        "openConstraintsDialog",
+    ):
+        assert marker in served

@@ -221,6 +221,57 @@ def build_continuity_links(shots: list[Shot], scene_number: int) -> None:
         current.continuity_notes = (current.continuity_notes or "") + note
 
 
+# --- Scene context ---
+
+def _normalize_name(value: str) -> str:
+    return " ".join(value.strip().casefold().split())
+
+
+def build_scene_context(session: Session, scene: Scene) -> dict:
+    """Derive the ``context`` object injected into the shot-generation prompt."""
+    previous = session.exec(
+        select(Scene)
+        .where(
+            Scene.screenplay_id == scene.screenplay_id,
+            Scene.scene_number < scene.scene_number,
+        )
+        .order_by(Scene.scene_number.desc())
+    ).first()
+
+    first_scene = previous is None
+    if previous is None:
+        location_changed = False
+    else:
+        location_changed = _normalize_name(scene.location) != _normalize_name(
+            previous.location
+        )
+
+    earlier = session.exec(
+        select(Scene).where(
+            Scene.screenplay_id == scene.screenplay_id,
+            Scene.scene_number < scene.scene_number,
+        )
+    ).all()
+    seen = {
+        _normalize_name(name)
+        for earlier_scene in earlier
+        for name in (earlier_scene.characters or [])
+    }
+    new_characters: list[str] = []
+    for name in scene.characters or []:
+        key = _normalize_name(name)
+        if key in seen:
+            continue
+        seen.add(key)
+        new_characters.append(name)
+
+    return {
+        "first_scene": first_scene,
+        "location_changed": location_changed,
+        "new_characters": new_characters,
+    }
+
+
 # --- Generation ---
 
 def _to_db(ai_shot: AIShotData, scene_id: int) -> Shot:
@@ -279,9 +330,9 @@ async def generate_shots_for_scene(
             }
         )
 
-    generated = await generate_shots(
-        scene_service.to_dict(scene), effective, provider=provider, model=model
-    )
+    payload = scene_service.to_dict(scene)
+    payload["context"] = build_scene_context(session, scene)
+    generated = await generate_shots(payload, effective, provider=provider, model=model)
 
     warnings: list[str] = []
     new_shots: list[Shot] = []

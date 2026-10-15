@@ -1035,6 +1035,70 @@ p {
   font-size: 11px;
 }
 
+dialog.constraints-dialog {
+  width: min(780px, calc(100vw - 28px));
+  max-height: min(88vh, 860px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+dialog.constraints-dialog::backdrop {
+  background: rgba(8, 9, 12, 0.7);
+}
+
+.cd-head {
+  padding: 16px 18px 13px;
+  border-bottom: 1px solid var(--line);
+}
+
+.cd-title {
+  margin: 0 0 5px;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 720;
+  letter-spacing: -0.01em;
+}
+
+.cd-hint,
+.constraint-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.cd-form {
+  padding: 16px 18px;
+}
+
+.cd-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 13px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.constraint-hint {
+  margin: 0 0 13px;
+}
+
+.scene-inline-constraints {
+  margin: 14px 15px;
+}
+
+.scene-inline-constraints > summary {
+  align-items: center;
+}
+
 .activity-console {
   position: sticky;
   top: 70px;

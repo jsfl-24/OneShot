@@ -236,6 +236,19 @@
     </aside>
   </div>
 
+  <dialog id="constraints-dialog" class="constraints-dialog" aria-labelledby="cd-title">
+    <div class="cd-head">
+      <h2 class="cd-title" id="cd-title">Constraints</h2>
+      <p class="cd-hint" id="cd-hint">Showing constraints currently applied — checked Override = scene-specific value, unchecked = project default</p>
+    </div>
+    <form id="cd-form" class="constraint-form cd-form" data-constraint-form="dialog"></form>
+    <div class="cd-footer">
+      <button type="button" id="cd-save-generate" class="btn primary">Save &amp; generate</button>
+      <button type="button" id="cd-skip" class="btn ghost">Skip</button>
+      <button type="button" id="cd-cancel" class="btn ghost">Cancel</button>
+    </div>
+  </dialog>
+
   <script src="app.js"></script>
 </body>
 </html>

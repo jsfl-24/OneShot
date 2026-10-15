@@ -89,6 +89,13 @@
     taskPercent: $("#task-percent"),
     taskDetail: $("#task-detail"),
     taskElapsed: $("#task-elapsed"),
+    constraintsDialog: $("#constraints-dialog"),
+    cdTitle: $("#cd-title"),
+    cdHint: $("#cd-hint"),
+    cdForm: $("#cd-form"),
+    cdSaveGenerate: $("#cd-save-generate"),
+    cdSkip: $("#cd-skip"),
+    cdCancel: $("#cd-cancel"),
   };
 
   const taskRuntime = {
@@ -109,6 +116,8 @@
   ];
   const CAMERA_MOVEMENTS = ["Static", "Pan", "Tilt", "Dolly", "Track", "Crane", "Handheld"];
   const BOOLEAN_CONSTRAINT_FIELDS = new Set(["high_angle_possible", "low_angle_possible"]);
+  const CONSTRAINT_PROVENANCE_HINT =
+    "Showing constraints currently applied — checked Override = scene-specific value, unchecked = project default";
 
   function asArray(value) {
     return Array.isArray(value) ? value : [];
@@ -815,6 +824,22 @@
         collectiveWarnings.push(`Scene ${number}: ${warning}`);
       }
       details.appendChild(warnings);
+      const inlineConstraints = document.createElement("details");
+      inlineConstraints.className = "constraints-panel scene-inline-constraints";
+      inlineConstraints.dataset.sceneConstraintsId = key;
+      const inlineSummary = document.createElement("summary");
+      inlineSummary.textContent = "Constraints";
+      const inlineForm = createInlineSceneConstraintForm(scene);
+      if (state.sceneConstraintsLoaded[key]) {
+        fillConstraintForm(inlineForm, state.sceneEffectiveConstraints[key], state.projectConstraints, true);
+      } else {
+        fillConstraintForm(inlineForm, state.projectConstraints ?? {}, state.projectConstraints ?? {}, true);
+      }
+      inlineConstraints.append(inlineSummary, inlineForm);
+      inlineConstraints.addEventListener("toggle", () => {
+        if (inlineConstraints.open) void loadSceneConstraintsForm(inlineConstraints, scene.id);
+      });
+      details.appendChild(inlineConstraints);
       const shotContainer = document.createElement("div");
       shotContainer.className = "shot-cards";
       shotContainer.dataset.shotContainerFor = key;
@@ -917,16 +942,37 @@
     return `<div class="${className}">${head}${input}</div>`;
   }
 
+  function constraintGridMarkup({ override = false } = {}) {
+    return `<div class="constraint-grid">${constraintFieldMarkup("location_constraints", "Location constraints", { override })}${constraintFieldMarkup("available_lenses", "Available lenses (comma-separated)", { override })}${constraintFieldMarkup("camera_movement_allowed", "Camera movement allowed", { wide: true, override })}${constraintFieldMarkup("high_angle_possible", "High angle possible", { override })}${constraintFieldMarkup("low_angle_possible", "Low angle possible", { override })}${constraintFieldMarkup("equipment_constraints", "Equipment constraints", { override })}${constraintFieldMarkup("director_preferences", "Director preferences", { override })}${constraintFieldMarkup("additional_notes", "Additional notes", { wide: true, override, type: "textarea" })}</div>`;
+  }
+
+  function sceneConstraintActionsMarkup(sceneId) {
+    return `<div class="constraint-actions"><button type="submit" class="btn primary" data-scene-constraint-submit="true" data-scene-id="${escapeHtml(sceneId)}">Save scene constraints</button></div>`;
+  }
+
   function createSceneConstraintForm(sceneId) {
     const form = document.createElement("form");
     form.className = "constraint-form scene-constraint-form";
     form.dataset.constraintForm = "scene";
     form.dataset.sceneId = String(sceneId);
-    form.innerHTML = `<div class="constraint-grid">${constraintFieldMarkup("location_constraints", "Location constraints", { override: true })}${constraintFieldMarkup("available_lenses", "Available lenses (comma-separated)", { override: true })}${constraintFieldMarkup("camera_movement_allowed", "Camera movement allowed", { wide: true, override: true })}${constraintFieldMarkup("high_angle_possible", "High angle possible", { override: true })}${constraintFieldMarkup("low_angle_possible", "Low angle possible", { override: true })}${constraintFieldMarkup("equipment_constraints", "Equipment constraints", { override: true })}${constraintFieldMarkup("director_preferences", "Director preferences", { override: true })}${constraintFieldMarkup("additional_notes", "Additional notes", { wide: true, override: true, type: "textarea" })}</div><div class="constraint-actions"><button type="submit" class="btn primary" data-scene-constraint-submit="true" data-scene-id="${escapeHtml(sceneId)}">Save scene constraints</button></div>`;
+    form.innerHTML = `${constraintGridMarkup({ override: true })}${sceneConstraintActionsMarkup(sceneId)}`;
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       const scene = state.scenes.find((item) => sameId(item.id, sceneId));
       if (scene) void saveSceneConstraints(scene);
+    });
+    return form;
+  }
+
+  function createInlineSceneConstraintForm(scene) {
+    const form = document.createElement("form");
+    form.className = "constraint-form scene-constraint-form";
+    form.dataset.constraintForm = "scene";
+    form.dataset.sceneId = String(scene.id);
+    form.innerHTML = `<p class="constraint-hint">${escapeHtml(CONSTRAINT_PROVENANCE_HINT)}</p>${constraintGridMarkup({ override: true })}${sceneConstraintActionsMarkup(scene.id)}`;
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void saveSceneConstraintForm(scene, form);
     });
     return form;
   }
@@ -1136,16 +1182,17 @@
     }
   }
 
-  async function saveSceneConstraints(scene) {
-    if (state.selectedProjectId == null) return;
-    const key = String(scene.id);
-    const formElement = [...els.sceneConstraintsList.querySelectorAll("[data-constraint-form='scene']")].find(
-      (form) => form.dataset.sceneId === key,
+  function syncInlineSceneConstraintForm(sceneId, data) {
+    const key = String(sceneId);
+    const form = [...els.shotSceneList.querySelectorAll("[data-constraint-form='scene']")].find(
+      (item) => item.dataset.sceneId === key,
     );
-    if (!formElement) {
-      showError("Open the scene constraints form before saving.");
-      return;
-    }
+    if (form && state.projectConstraints) fillConstraintForm(form, data, state.projectConstraints, true);
+  }
+
+  async function saveSceneConstraintForm(scene, formElement) {
+    if (state.selectedProjectId == null || !formElement) return;
+    const key = String(scene.id);
     const projectId = state.selectedProjectId;
     state.sceneConstraintSaveInProgress = key;
     refreshActionStates();
@@ -1159,12 +1206,167 @@
       state.sceneConstraintsLoaded[key] = true;
       if (state.projectConstraints) fillConstraintForm(formElement, data, state.projectConstraints, true);
       renderSceneConstraints();
+      syncInlineSceneConstraintForm(key, data);
       endTask(true, `Scene ${scene.scene_number ?? scene.id} constraints saved`, undefined, taskId);
     } catch (error) {
       failTask(error, taskId);
     } finally {
       if (String(state.sceneConstraintSaveInProgress) === key) state.sceneConstraintSaveInProgress = null;
       refreshActionStates();
+    }
+  }
+
+  async function saveSceneConstraints(scene) {
+    const key = String(scene.id);
+    const formElement = [...els.sceneConstraintsList.querySelectorAll("[data-constraint-form='scene']")].find(
+      (form) => form.dataset.sceneId === key,
+    );
+    if (!formElement) {
+      showError("Open the scene constraints form before saving.");
+      return;
+    }
+    await saveSceneConstraintForm(scene, formElement);
+  }
+
+  const dialogRuntime = { mode: "scene", scene: null, replaceChecked: false, busy: false, resolve: null, session: 0 };
+
+  function setDialogFieldsDisabled(disabled) {
+    for (const control of els.cdForm.querySelectorAll("input, textarea")) control.disabled = disabled;
+  }
+
+  function setDialogButtonsEnabled(enabled, reason = "") {
+    setActionState(els.cdSaveGenerate, enabled, enabled ? "" : reason);
+    setActionState(els.cdSkip, enabled, enabled ? "" : reason);
+    setActionState(els.cdCancel, enabled, enabled ? "" : reason);
+  }
+
+  function settleConstraintsDialog(action) {
+    const resolve = dialogRuntime.resolve;
+    if (!resolve) return;
+    dialogRuntime.resolve = null;
+    resolve(action);
+  }
+
+  function closeConstraintsDialog(action) {
+    settleConstraintsDialog(action);
+    if (els.constraintsDialog?.open) els.constraintsDialog.close();
+  }
+
+  async function openConstraintsDialog({ mode, scene = null, replaceChecked = false }) {
+    const dialog = els.constraintsDialog;
+    if (!dialog || typeof dialog.showModal !== "function") return "skip";
+    if (dialogRuntime.resolve || state.shotGenerationInProgress) return "cancel";
+    if (state.selectedProjectId == null) {
+      showError("Select a project first.");
+      return "cancel";
+    }
+    const sceneMode = mode === "scene" && scene != null;
+    dialogRuntime.mode = sceneMode ? "scene" : "batch";
+    dialogRuntime.scene = sceneMode ? scene : null;
+    dialogRuntime.replaceChecked = Boolean(replaceChecked);
+    dialogRuntime.busy = false;
+    const session = ++dialogRuntime.session;
+    els.cdTitle.textContent = sceneMode
+      ? `Constraints for scene ${scene.scene_number ?? scene.id}`
+      : "Constraints for all scenes";
+    els.cdHint.textContent = "Loading…";
+    els.cdForm.innerHTML = constraintGridMarkup({ override: sceneMode });
+    setDialogFieldsDisabled(true);
+    setActionState(els.cdSaveGenerate, false, "Loading constraints…");
+    dialog.showModal();
+    return new Promise((resolve) => {
+      dialogRuntime.resolve = resolve;
+      void (async () => {
+        try {
+          const projectId = state.selectedProjectId;
+          const projectValues = state.projectConstraints ?? (await api(`/projects/${projectId}/constraints`));
+          if (session !== dialogRuntime.session) return;
+          if (!sameId(state.selectedProjectId, projectId)) throw new Error("Project selection changed.");
+          if (!state.projectConstraintsLoaded) {
+            state.projectConstraints = projectValues;
+            state.projectConstraintsLoaded = true;
+            fillConstraintForm(els.projectConstraintsForm, projectValues);
+          }
+          let sceneValues = null;
+          if (sceneMode) {
+            const key = String(scene.id);
+            sceneValues = state.sceneConstraintsLoaded[key]
+              ? state.sceneEffectiveConstraints[key]
+              : await api(`/projects/${projectId}/scenes/${scene.id}/constraints`);
+            if (session !== dialogRuntime.session) return;
+            if (!sameId(state.selectedProjectId, projectId)) throw new Error("Project selection changed.");
+            if (!state.sceneConstraintsLoaded[key]) {
+              state.sceneEffectiveConstraints[key] = sceneValues;
+              state.sceneConstraintsLoaded[key] = true;
+            }
+          }
+          fillConstraintForm(els.cdForm, sceneValues ?? projectValues, projectValues, sceneMode);
+          els.cdHint.textContent = CONSTRAINT_PROVENANCE_HINT;
+          setDialogFieldsDisabled(false);
+          setActionState(els.cdSaveGenerate, true);
+        } catch (error) {
+          if (session !== dialogRuntime.session) return;
+          const message = error instanceof Error ? error.message : String(error);
+          showError(message);
+          closeConstraintsDialog("cancel");
+        }
+      })();
+    });
+  }
+
+  async function dialogSaveAndGenerate() {
+    if (dialogRuntime.busy || state.shotGenerationInProgress) return;
+    if (state.selectedProjectId == null) return;
+    const projectId = state.selectedProjectId;
+    dialogRuntime.busy = true;
+    setDialogButtonsEnabled(false, "Saving constraints — please wait…");
+    const scene = dialogRuntime.scene;
+    const taskId = startTask(
+      scene ? `Saving constraints for scene ${scene.scene_number ?? scene.id}` : "Saving project constraints",
+    );
+    try {
+      if (scene) {
+        const key = String(scene.id);
+        const data = await api(
+          `/projects/${projectId}/scenes/${scene.id}/constraints`,
+          jsonRequest("PUT", serializeConstraintForm(els.cdForm, true)),
+        );
+        if (!sameId(state.selectedProjectId, projectId)) {
+          dialogRuntime.busy = false;
+          endTask(true, "Project selection changed", undefined, taskId);
+          closeConstraintsDialog("cancel");
+          return;
+        }
+        state.sceneEffectiveConstraints[key] = data;
+        state.sceneConstraintsLoaded[key] = true;
+        renderSceneConstraints();
+        syncInlineSceneConstraintForm(key, data);
+        endTask(true, `Scene ${scene.scene_number ?? scene.id} constraints saved`, undefined, taskId);
+      } else {
+        const data = await api(
+          `/projects/${projectId}/constraints`,
+          jsonRequest("PUT", serializeConstraintForm(els.cdForm, false)),
+        );
+        if (!sameId(state.selectedProjectId, projectId)) {
+          dialogRuntime.busy = false;
+          endTask(true, "Project selection changed", undefined, taskId);
+          closeConstraintsDialog("cancel");
+          return;
+        }
+        state.projectConstraints = data;
+        state.projectConstraintsLoaded = true;
+        state.sceneConstraintsLoaded = {};
+        state.sceneEffectiveConstraints = {};
+        fillConstraintForm(els.projectConstraintsForm, data);
+        renderSceneConstraints();
+        endTask(true, "Project constraints saved", undefined, taskId);
+      }
+      dialogRuntime.busy = false;
+      closeConstraintsDialog("save");
+    } catch (error) {
+      dialogRuntime.busy = false;
+      failTask(error, taskId);
+      setDialogButtonsEnabled(true);
     }
   }
 
@@ -1235,6 +1437,14 @@
 
   async function generateShotsForScene(scene, replaceInput) {
     if (state.shotGenerationInProgress || (state.activeShotSceneId != null && String(state.activeShotSceneId) !== String(scene.id))) return;
+    const replaceExisting = Boolean(replaceInput?.checked);
+    const action = await openConstraintsDialog({ mode: "scene", scene, replaceChecked: replaceExisting });
+    if (action !== "save" && action !== "skip") return;
+    await runSceneGeneration(scene, replaceExisting);
+  }
+
+  async function runSceneGeneration(scene, replaceExisting) {
+    if (state.shotGenerationInProgress || (state.activeShotSceneId != null && String(state.activeShotSceneId) !== String(scene.id))) return;
     const key = String(scene.id);
     state.activeShotSceneId = key;
     refreshActionStates();
@@ -1245,7 +1455,7 @@
         "/shots/generate",
         jsonRequest("POST", {
           scene_id: scene.id,
-          replace_existing: Boolean(replaceInput?.checked),
+          replace_existing: Boolean(replaceExisting),
         }),
       );
       state.shotsByScene[key] = asArray(data.shots);
@@ -1266,6 +1476,16 @@
     if (state.shotGenerationInProgress) return;
     const screenplay = state.screenplays.find((item) => sameId(item.id, state.selectedScreenplayId));
     if (!screenplay || state.scenes.length === 0) return;
+    const replaceExisting = Boolean(els.batchReplace.checked);
+    const action = await openConstraintsDialog({ mode: "batch", replaceChecked: replaceExisting });
+    if (action !== "save" && action !== "skip") return;
+    await runBatchGeneration(replaceExisting);
+  }
+
+  async function runBatchGeneration(replaceExisting) {
+    if (state.shotGenerationInProgress) return;
+    const screenplay = state.screenplays.find((item) => sameId(item.id, state.selectedScreenplayId));
+    if (!screenplay || state.scenes.length === 0) return;
     state.shotGenerationInProgress = true;
     refreshActionStates();
     const taskId = startTask(`Generating shots for all scenes in “${screenplay.filename}”`);
@@ -1274,7 +1494,7 @@
       const response = await fetch(`/screenplays/${screenplay.id}/generate-shots-stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ replace_existing: Boolean(els.batchReplace.checked) }),
+        body: JSON.stringify({ replace_existing: Boolean(replaceExisting) }),
       });
       await consumeSse(response, {
         onProgress: (data) => updateTask(data.percent ?? null, data.detail || data.step || "", taskId),
@@ -1777,6 +1997,17 @@
   });
   els.resetProjectConstraints.addEventListener("click", () => void resetProjectConstraints());
   els.btnGenerateAll.addEventListener("click", () => void generateAllShots());
+  els.cdCancel.addEventListener("click", () => closeConstraintsDialog("cancel"));
+  els.cdSkip.addEventListener("click", () => {
+    if (state.shotGenerationInProgress) return;
+    closeConstraintsDialog("skip");
+  });
+  els.cdSaveGenerate.addEventListener("click", () => void dialogSaveAndGenerate());
+  els.cdForm.addEventListener("submit", (event) => event.preventDefault());
+  els.constraintsDialog.addEventListener("close", () => settleConstraintsDialog("cancel"));
+  els.constraintsDialog.addEventListener("cancel", (event) => {
+    if (dialogRuntime.busy) event.preventDefault();
+  });
   els.llmProvider.addEventListener("change", (event) => void switchProvider("llm", event.target.value));
   els.embedProvider.addEventListener("change", (event) => void switchProvider("embeddings", event.target.value));
   els.pingBtn.addEventListener("click", () => void pingProviders());

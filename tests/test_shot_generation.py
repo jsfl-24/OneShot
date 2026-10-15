@@ -50,6 +50,26 @@ async def test_generate_shots_rejects_non_list(monkeypatch):
         await shot_generator.generate_shots(SCENE, CONSTRAINTS)
 
 
+async def test_generate_shots_unwraps_items_envelope(monkeypatch):
+    async def fake_generate(prompt, **kwargs):
+        return json.dumps({"type": "array", "items": SHOTS})
+
+    monkeypatch.setattr(shot_generator, "generate", fake_generate)
+    shots = await shot_generator.generate_shots(SCENE, CONSTRAINTS)
+    assert len(shots) == 3
+    assert all(isinstance(s, AIShotData) for s in shots)
+    assert shots[0].shot_type is ShotType.WIDE
+
+
+async def test_generate_shots_rejects_items_envelope_without_list(monkeypatch):
+    async def fake_generate(prompt, **kwargs):
+        return json.dumps({"type": "array"})
+
+    monkeypatch.setattr(shot_generator, "generate", fake_generate)
+    with pytest.raises(ValueError, match="non-list"):
+        await shot_generator.generate_shots(SCENE, CONSTRAINTS)
+
+
 async def test_generate_shots_rejects_invalid_enum(monkeypatch):
     bad = dict(SHOTS[0], shot_type="MCU")
     async def fake_generate(prompt, **kwargs):

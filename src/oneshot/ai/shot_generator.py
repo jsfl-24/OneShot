@@ -76,6 +76,9 @@ async def generate_shots(
     except json.JSONDecodeError:
         raise ValueError(f"LLM returned invalid JSON: {response}")
 
+    if isinstance(data, dict) and isinstance(data.get("items"), list):
+        data = data["items"]
+
     if not isinstance(data, list):
         raise ValueError(f"LLM returned non-list shot data: {response}")  # noqa: TRY004
 

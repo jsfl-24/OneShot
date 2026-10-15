@@ -69,11 +69,24 @@ Shot count: scale to the scene. A short beat needs 1-2 shots; a dense scene with
 beats typically needs 3-8 shots. Do not pad for length and do not compress an involved
 scene into a single shot.
 
+Language style (applies to every string field you write):
+- Write `action` and `visual_description` in plain, natural English the way a director
+  talks to their crew on set: short concrete sentences, active voice, specific and filmable.
+- Never sound mechanical, templated, or like AI boilerplate; never restate these
+  instructions; never include meta-commentary or markdown bullets inside field values.
+- `continuity_notes`: one short plain sentence.
+- `director_notes`: conversational and brief, or an empty string.
+
 Production constraints (these are hard limits - do not violate them):
 {constraints_json}
 
 Scene to plan:
 {scene_json}
+
+The scene JSON includes a `context` object with these fields:
+- first_scene: bool - true when this is the first scene of the screenplay.
+- location_changed: bool - true when this scene's location differs from the previous scene.
+- new_characters: list of names - characters appearing for the first time in the screenplay.
 
 Rules for every shot:
 - shot_type, camera_angle, and camera_movement MUST use one of the exact enum values
@@ -90,6 +103,18 @@ Rules for every shot:
   referencing absolute shot numbers (the numbers are assigned later), e.g.
   "maintain eyeline with previous shot", "screen direction stays consistent".
 - director_notes: optional flourish or staging intent; empty string when not needed.
+
+Cinematography rules:
+- Establishing shot: if `context.first_scene` is true OR `context.location_changed` is
+  true, the FIRST shot of the list MUST be an establishing shot using shot_type
+  "Extreme Wide" or "Wide" that shows the location before cutting in.
+- Emotional close-up: when a beat triggers a strong emotion (rage, grief, fear, joy,
+  shock), cover that moment with shot_type "Close-Up".
+- Character intro / tension ECU: characters listed in `context.new_characters` are
+  appearing for the first time in the screenplay; introduce each of them on their first
+  beat with shot_type "Extreme Close-Up". An Extreme Close-Up may also punctuate a
+  peak-tension moment (an eye, a glance, an object). Never use more than 2 Extreme
+  Close-Ups in one scene - do not overuse.
 
 Return ONLY a valid JSON array of shot objects. Every object must conform exactly to
 this schema (all required keys present):
