@@ -29,6 +29,8 @@
     pipelineInProgress: false,
     shotGenerationInProgress: false,
     activeShotSceneId: null,
+    shotEditingId: null,
+    shotActionInProgress: null,
     projectConstraintsLoading: false,
     projectConstraintSaveInProgress: false,
     projectConstraintResetInProgress: false,
@@ -115,6 +117,16 @@
     "additional_notes",
   ];
   const CAMERA_MOVEMENTS = ["Static", "Pan", "Tilt", "Dolly", "Track", "Crane", "Handheld"];
+  const SHOT_TYPES = [
+    "Extreme Wide",
+    "Wide",
+    "Medium Wide",
+    "Medium",
+    "Medium Close-Up",
+    "Close-Up",
+    "Extreme Close-Up",
+  ];
+  const CAMERA_ANGLES = ["Eye Level", "High Angle", "Low Angle", "Bird's Eye", "Dutch Angle", "Worm's Eye"];
   const BOOLEAN_CONSTRAINT_FIELDS = new Set(["high_angle_possible", "low_angle_possible"]);
   const CONSTRAINT_PROVENANCE_HINT =
     "Showing constraints currently applied — checked Override = scene-specific value, unchecked = project default";
@@ -706,13 +718,211 @@
     parent.appendChild(line);
   }
 
+  function shotNumberValue(shot) {
+    const value = Number(shot?.shot_number);
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  function isApprovedShot(shot) {
+    return String(shot?.status || "draft").toLowerCase() === "approved";
+  }
+
+  function sortShotsByNumber(shots) {
+    return [...asArray(shots)].sort(
+      (left, right) => shotNumberValue(left) - shotNumberValue(right),
+    );
+  }
+
+  function sceneShots(sceneId) {
+    return state.shotsByScene[String(sceneId)] ?? [];
+  }
+
+  function sceneDrafts(shots) {
+    return sortShotsByNumber(shots).filter((shot) => !isApprovedShot(shot));
+  }
+
+  function replaceShotInState(sceneId, nextShot) {
+    const key = String(sceneId);
+    const shots = sceneShots(sceneId);
+    const index = shots.findIndex((shot) => sameId(shot.id, nextShot.id));
+    const next = index === -1 ? [...shots, nextShot] : shots.map(
+      (shot) => (sameId(shot.id, nextShot.id) ? nextShot : shot),
+    );
+    state.shotsByScene[key] = sortShotsByNumber(next);
+    return state.shotsByScene[key];
+  }
+
+  function updateSceneShotCount(sceneId) {
+    const key = String(sceneId);
+    const details = [...els.shotSceneList.querySelectorAll(".shot-scene")].find(
+      (item) => item.dataset.sceneId === key,
+    );
+    const count = details?.querySelector(".shot-count");
+    if (!count) return;
+    const total = sceneShots(sceneId).length;
+    count.textContent = `${total} shot${total === 1 ? "" : "s"}`;
+  }
+
+  function applySceneShots(sceneId, shots) {
+    const key = String(sceneId);
+    state.shotsByScene[key] = sortShotsByNumber(shots);
+    if (
+      state.shotEditingId != null &&
+      !state.shotsByScene[key].some((shot) => sameId(shot.id, state.shotEditingId))
+    ) {
+      state.shotEditingId = null;
+    }
+    renderShots(sceneId, state.shotsByScene[key]);
+    updateSceneShotCount(sceneId);
+    refreshActionStates();
+  }
+
+  function shotActionButton(label, action, { enabled = true, reason = "", title = "" } = {}) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn ghost shot-card-action";
+    button.dataset.shotAction = action;
+    button.textContent = label;
+    if (title) button.setAttribute("aria-label", title);
+    setActionState(button, enabled, reason);
+    return button;
+  }
+
+  function renderShotCard(sceneId, shot, drafts) {
+    const card = document.createElement("article");
+    card.className = "shot-card";
+    card.dataset.shotId = String(shot.id);
+    const head = document.createElement("div");
+    head.className = "shot-card-head";
+    const ref = document.createElement("span");
+    ref.className = "shot-ref";
+    ref.textContent = shot.ref || `Scene ${shot.scene_number ?? ""} - Shot ${shot.shot_number ?? ""}`;
+    const status = document.createElement("span");
+    const statusText = String(shot.status || "draft").toLowerCase();
+    status.className = `analyzed-tag shot-status is-${statusText === "approved" ? "approved" : "draft"}`;
+    status.textContent = statusText;
+    head.append(ref, status);
+    const meta = document.createElement("div");
+    meta.className = "shot-meta";
+    appendShotChip(meta, "Type", shot.shot_type);
+    appendShotChip(meta, "Angle", shot.camera_angle);
+    appendShotChip(meta, "Lens", shot.lens);
+    appendShotChip(meta, "Movement", shot.camera_movement);
+    appendShotChip(meta, "Duration", shot.duration == null ? null : `${shot.duration}s`);
+    card.append(head, meta);
+    appendShotText(card, "Characters", asArray(shot.characters).join(", "));
+    appendShotText(card, "Action", shot.action);
+    appendShotText(card, "Visual description", shot.visual_description);
+    appendShotText(card, "Dialogue", shot.dialogue);
+    appendShotText(card, "Continuity", shot.continuity_notes);
+    appendShotText(card, "Director notes", shot.director_notes);
+
+    // Approved shots are immutable in the UI: no editing, reordering, approval or deletion.
+    if (isApprovedShot(shot)) return card;
+
+    const busy = state.shotActionInProgress != null;
+    const busyReason = "Another shot action is running…";
+    const draftIndex = drafts.findIndex((item) => sameId(item.id, shot.id));
+    const actions = document.createElement("div");
+    actions.className = "shot-card-actions";
+
+    const editButton = shotActionButton("Edit", "edit", {
+      enabled: !busy,
+      reason: busyReason,
+      title: `Edit ${shot.ref || "shot"}`,
+    });
+    editButton.addEventListener("click", () => startShotEdit(sceneId, shot));
+
+    const upButton = shotActionButton("↑ Move up", "move-up", {
+      enabled: !busy && draftIndex > 0,
+      reason: busy ? busyReason : "This is already the first draft shot.",
+      title: "Move this draft shot up",
+    });
+    upButton.addEventListener("click", () => void moveShot(sceneId, shot, -1));
+
+    const downButton = shotActionButton("↓ Move down", "move-down", {
+      enabled: !busy && draftIndex > -1 && draftIndex < drafts.length - 1,
+      reason: busy ? busyReason : "This is already the last draft shot.",
+      title: "Move this draft shot down",
+    });
+    downButton.addEventListener("click", () => void moveShot(sceneId, shot, 1));
+
+    const approveButton = shotActionButton("Approve", "approve", {
+      enabled: !busy,
+      reason: busyReason,
+      title: `Approve ${shot.ref || "shot"}`,
+    });
+    approveButton.addEventListener("click", () => void approveShot(sceneId, shot));
+
+    const deleteButton = shotActionButton("Delete", "delete", {
+      enabled: !busy,
+      reason: busyReason,
+      title: `Delete ${shot.ref || "shot"}`,
+    });
+    deleteButton.addEventListener("click", () => void deleteShot(sceneId, shot));
+
+    actions.append(editButton, upButton, downButton, approveButton, deleteButton);
+    card.appendChild(actions);
+    return card;
+  }
+
+  function shotSelectOptions(values, selected) {
+    return values
+      .map(
+        (value) =>
+          `<option value="${escapeHtml(value)}"${value === selected ? " selected" : ""}>${escapeHtml(value)}</option>`,
+      )
+      .join("");
+  }
+
+  function renderShotEditCard(sceneId, shot) {
+    const card = document.createElement("article");
+    card.className = "shot-card is-editing";
+    card.dataset.shotId = String(shot.id);
+    const head = document.createElement("div");
+    head.className = "shot-card-head";
+    const ref = document.createElement("span");
+    ref.className = "shot-ref";
+    ref.textContent = `${shot.ref || `Scene ${shot.scene_number ?? ""} - Shot ${shot.shot_number ?? ""}`} — editing`;
+    head.appendChild(ref);
+
+    const form = document.createElement("form");
+    form.className = "shot-edit-form";
+    form.dataset.shotEditForm = String(shot.id);
+    form.innerHTML = `
+      <div class="shot-edit-grid">
+        <label class="field"><span class="field-label">Shot type</span><select name="shot_type">${shotSelectOptions(SHOT_TYPES, shot.shot_type)}</select></label>
+        <label class="field"><span class="field-label">Camera angle</span><select name="camera_angle">${shotSelectOptions(CAMERA_ANGLES, shot.camera_angle)}</select></label>
+        <label class="field"><span class="field-label">Camera movement</span><select name="camera_movement">${shotSelectOptions(CAMERA_MOVEMENTS, shot.camera_movement)}</select></label>
+        <label class="field"><span class="field-label">Lens</span><input type="text" name="lens" value="${escapeHtml(shot.lens ?? "")}"></label>
+        <label class="field"><span class="field-label">Duration (seconds)</span><input type="number" name="duration" min="1" max="120" step="1" value="${escapeHtml(shot.duration ?? "")}"></label>
+        <label class="field"><span class="field-label">Characters (comma-separated)</span><input type="text" name="characters" value="${escapeHtml(asArray(shot.characters).join(", "))}"></label>
+      </div>
+      <label class="field"><span class="field-label">Action</span><textarea name="action" rows="2">${escapeHtml(shot.action ?? "")}</textarea></label>
+      <label class="field"><span class="field-label">Visual description</span><textarea name="visual_description" rows="2">${escapeHtml(shot.visual_description ?? "")}</textarea></label>
+      <label class="field"><span class="field-label">Dialogue</span><textarea name="dialogue" rows="2">${escapeHtml(shot.dialogue ?? "")}</textarea></label>
+      <label class="field"><span class="field-label">Continuity notes</span><textarea name="continuity_notes" rows="2">${escapeHtml(shot.continuity_notes ?? "")}</textarea></label>
+      <label class="field"><span class="field-label">Director notes</span><textarea name="director_notes" rows="2">${escapeHtml(shot.director_notes ?? "")}</textarea></label>
+      <div class="shot-edit-actions">
+        <button type="submit" class="btn primary">Save changes</button>
+        <button type="button" class="btn ghost" data-shot-cancel>Cancel</button>
+      </div>`;
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void saveShotEdit(sceneId, shot, form);
+    });
+    form.querySelector("[data-shot-cancel]").addEventListener("click", () => cancelShotEdit(sceneId));
+    card.append(head, form);
+    return card;
+  }
+
   function renderShots(sceneId, shots) {
     const container = [...els.shotSceneList.querySelectorAll("[data-shot-container-for]")].find(
       (item) => item.dataset.shotContainerFor === String(sceneId),
     );
     if (!container) return;
     container.textContent = "";
-    const values = Array.isArray(shots) ? shots : [];
+    const values = sortShotsByNumber(shots);
     if (!values.length) {
       const empty = document.createElement("p");
       empty.className = "empty-state shot-empty-inline";
@@ -720,34 +930,173 @@
       container.appendChild(empty);
       return;
     }
+    const drafts = sceneDrafts(values);
     for (const shot of values) {
-      const card = document.createElement("article");
-      card.className = "shot-card";
-      const head = document.createElement("div");
-      head.className = "shot-card-head";
-      const ref = document.createElement("span");
-      ref.className = "shot-ref";
-      ref.textContent = shot.ref || `Scene ${shot.scene_number ?? ""} - Shot ${shot.shot_number ?? ""}`;
-      const status = document.createElement("span");
-      const statusText = String(shot.status || "draft").toLowerCase();
-      status.className = `analyzed-tag shot-status is-${statusText === "approved" ? "approved" : "draft"}`;
-      status.textContent = statusText;
-      head.append(ref, status);
-      const meta = document.createElement("div");
-      meta.className = "shot-meta";
-      appendShotChip(meta, "Type", shot.shot_type);
-      appendShotChip(meta, "Angle", shot.camera_angle);
-      appendShotChip(meta, "Lens", shot.lens);
-      appendShotChip(meta, "Movement", shot.camera_movement);
-      appendShotChip(meta, "Duration", shot.duration == null ? null : `${shot.duration}s`);
-      card.append(head, meta);
-      appendShotText(card, "Characters", asArray(shot.characters).join(", "));
-      appendShotText(card, "Action", shot.action);
-      appendShotText(card, "Visual description", shot.visual_description);
-      appendShotText(card, "Dialogue", shot.dialogue);
-      appendShotText(card, "Continuity", shot.continuity_notes);
-      appendShotText(card, "Director notes", shot.director_notes);
-      container.appendChild(card);
+      if (state.shotEditingId != null && sameId(shot.id, state.shotEditingId)) {
+        container.appendChild(renderShotEditCard(sceneId, shot));
+      } else {
+        container.appendChild(renderShotCard(sceneId, shot, drafts));
+      }
+    }
+  }
+
+  function normalizeCharactersInput(value) {
+    return String(value ?? "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function collectShotUpdates(form, shot) {
+    const data = new FormData(form);
+    const updates = {};
+    for (const field of ["shot_type", "camera_angle", "camera_movement"]) {
+      const value = String(data.get(field) ?? "").trim();
+      if (value && value !== shot[field]) updates[field] = value;
+    }
+    const lens = String(data.get("lens") ?? "").trim();
+    if (lens !== (shot.lens ?? "")) updates.lens = lens;
+    const durationRaw = String(data.get("duration") ?? "").trim();
+    if (durationRaw !== "") {
+      const duration = Number(durationRaw);
+      if (Number.isFinite(duration) && duration !== Number(shot.duration)) updates.duration = duration;
+    }
+    const characters = normalizeCharactersInput(data.get("characters"));
+    if (JSON.stringify(characters) !== JSON.stringify(asArray(shot.characters))) {
+      updates.characters = characters;
+    }
+    for (const field of [
+      "action",
+      "visual_description",
+      "dialogue",
+      "continuity_notes",
+      "director_notes",
+    ]) {
+      const value = String(data.get(field) ?? "").trim();
+      if (value !== String(shot[field] ?? "")) updates[field] = value || null;
+    }
+    return updates;
+  }
+
+  function startShotEdit(sceneId, shot) {
+    if (isApprovedShot(shot) || state.shotActionInProgress != null) return;
+    state.shotEditingId = shot.id;
+    renderShots(sceneId, sceneShots(sceneId));
+  }
+
+  function cancelShotEdit(sceneId) {
+    state.shotEditingId = null;
+    renderShots(sceneId, sceneShots(sceneId));
+  }
+
+  async function saveShotEdit(sceneId, shot, form) {
+    if (isApprovedShot(shot) || state.shotActionInProgress != null) return;
+    const updates = collectShotUpdates(form, shot);
+    if (!Object.keys(updates).length) {
+      cancelShotEdit(sceneId);
+      return;
+    }
+    state.shotActionInProgress = shot.id;
+    const submit = form.querySelector("button[type='submit']");
+    const cancel = form.querySelector("[data-shot-cancel]");
+    for (const control of form.querySelectorAll("input, textarea, select")) {
+      control.disabled = true;
+    }
+    setActionState(submit, false, "Saving…");
+    setActionState(cancel, false, "Saving…");
+    const taskId = startTask(`Saving ${shot.ref || "shot"}…`);
+    let saved = false;
+    try {
+      const data = await api(`/shots/${shot.id}`, jsonRequest("PATCH", updates));
+      replaceShotInState(sceneId, data);
+      state.shotEditingId = null;
+      saved = true;
+      endTask(true, `${data.ref || "Shot"} saved`, undefined, taskId);
+    } catch (error) {
+      failTask(error, taskId);
+    } finally {
+      state.shotActionInProgress = null;
+      if (saved) {
+        renderShots(sceneId, sceneShots(sceneId));
+      } else {
+        for (const control of form.querySelectorAll("input, textarea, select")) {
+          control.disabled = false;
+        }
+        setActionState(submit, true);
+        setActionState(cancel, true);
+      }
+      refreshActionStates();
+    }
+  }
+
+  async function refreshSceneShots(sceneId) {
+    const data = await api(`/scenes/${sceneId}/shots`);
+    applySceneShots(sceneId, data);
+    return data;
+  }
+
+  async function approveShot(sceneId, shot) {
+    if (isApprovedShot(shot) || state.shotActionInProgress != null) return;
+    state.shotActionInProgress = shot.id;
+    renderShots(sceneId, sceneShots(sceneId));
+    const taskId = startTask(`Approving ${shot.ref || "shot"}…`);
+    try {
+      const data = await api(`/shots/${shot.id}/approve`, { method: "POST" });
+      replaceShotInState(sceneId, data);
+      endTask(true, `${data.ref || "Shot"} approved`, undefined, taskId);
+    } catch (error) {
+      failTask(error, taskId);
+    } finally {
+      state.shotActionInProgress = null;
+      renderShots(sceneId, sceneShots(sceneId));
+      refreshActionStates();
+    }
+  }
+
+  async function deleteShot(sceneId, shot) {
+    if (isApprovedShot(shot) || state.shotActionInProgress != null) return;
+    if (!window.confirm(`Delete draft shot ${shot.ref || shot.shot_number}?`)) return;
+    state.shotActionInProgress = shot.id;
+    renderShots(sceneId, sceneShots(sceneId));
+    const taskId = startTask(`Deleting ${shot.ref || "shot"}…`);
+    try {
+      await api(`/shots/${shot.id}`, { method: "DELETE" });
+      updateTask(60, "Refreshing shot order and continuity…", taskId);
+      await refreshSceneShots(sceneId);
+      endTask(true, `${shot.ref || "Shot"} deleted`, undefined, taskId);
+    } catch (error) {
+      failTask(error, taskId);
+    } finally {
+      state.shotActionInProgress = null;
+      renderShots(sceneId, sceneShots(sceneId));
+      refreshActionStates();
+    }
+  }
+
+  async function moveShot(sceneId, shot, delta) {
+    if (isApprovedShot(shot) || state.shotActionInProgress != null) return;
+    const drafts = sceneDrafts(sceneShots(sceneId));
+    const index = drafts.findIndex((item) => sameId(item.id, shot.id));
+    const target = index + delta;
+    if (index === -1 || target < 0 || target >= drafts.length) return;
+    const reordered = [...drafts];
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+    state.shotActionInProgress = shot.id;
+    renderShots(sceneId, sceneShots(sceneId));
+    const taskId = startTask(`Reordering ${shot.ref || "shot"}…`);
+    try {
+      const data = await api(
+        `/shots/${shot.id}/reorder`,
+        jsonRequest("PUT", { shot_ids: reordered.map((item) => item.id) }),
+      );
+      applySceneShots(sceneId, data);
+      endTask(true, "Shot order updated", undefined, taskId);
+    } catch (error) {
+      failTask(error, taskId);
+    } finally {
+      state.shotActionInProgress = null;
+      renderShots(sceneId, sceneShots(sceneId));
+      refreshActionStates();
     }
   }
 
@@ -1431,6 +1780,8 @@
     state.sceneConstraintsLoaded = {};
     state.sceneEffectiveConstraints = {};
     state.shotsLoadedFor = null;
+    state.shotEditingId = null;
+    state.shotActionInProgress = null;
     els.shotSceneList.textContent = "";
     renderWarnings(els.shotWarnings, []);
   }
@@ -1447,6 +1798,7 @@
     if (state.shotGenerationInProgress || (state.activeShotSceneId != null && String(state.activeShotSceneId) !== String(scene.id))) return;
     const key = String(scene.id);
     state.activeShotSceneId = key;
+    state.shotEditingId = null;
     refreshActionStates();
     const taskId = startTask(`Generating shots for scene ${scene.scene_number ?? scene.id}`);
     try {
@@ -1487,6 +1839,8 @@
     const screenplay = state.screenplays.find((item) => sameId(item.id, state.selectedScreenplayId));
     if (!screenplay || state.scenes.length === 0) return;
     state.shotGenerationInProgress = true;
+    state.shotEditingId = null;
+    state.shotActionInProgress = null;
     refreshActionStates();
     const taskId = startTask(`Generating shots for all scenes in “${screenplay.filename}”`);
     let completed = false;

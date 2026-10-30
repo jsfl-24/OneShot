@@ -163,7 +163,8 @@ p {
 }
 
 .field select,
-.field input[type="text"] {
+.field input[type="text"],
+.field input[type="number"] {
   width: 100%;
   min-width: 0;
   padding: 8px 10px;
@@ -882,6 +883,45 @@ p {
   color: var(--muted);
   font-size: 13px;
   text-align: center;
+}
+
+.shot-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.shot-card-actions .shot-card-action {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.shot-card.is-editing {
+  border-color: var(--accent);
+}
+
+.shot-edit-form {
+  display: grid;
+  gap: 10px;
+}
+
+.shot-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.shot-edit-form .field {
+  margin: 0;
+}
+
+.shot-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .constraints-panel {
