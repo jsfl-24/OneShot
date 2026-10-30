@@ -18,6 +18,27 @@ CONSTRAINTS = {
     "available_lenses": ["50mm"],
 }
 
+# Exact shape of the LiteRT / Gemma 4 E2B failure: the model echoed the JSON
+# Schema it was given instead of generating shots.
+SCHEMA_ECHO = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "required": [
+            "shot_type",
+            "camera_angle",
+            "lens",
+            "camera_movement",
+            "duration",
+            "action",
+            "visual_description",
+        ],
+        "properties": {
+            "shot_type": {"type": "string", "enum": [e.value for e in ShotType]},
+        },
+    },
+}
+
 
 async def test_generate_shots_returns_validated_data(monkeypatch):
     async def fake_generate(prompt, **kwargs):
@@ -102,3 +123,33 @@ async def test_generate_shots_forwards_provider(monkeypatch):
     monkeypatch.setattr(shot_generator, "generate", fake_generate)
     await shot_generator.generate_shots(SCENE, CONSTRAINTS, provider="ollama")
     assert seen["provider"] == "ollama"
+
+
+async def test_generate_shots_rejects_schema_echo_item(monkeypatch):
+    async def fake_generate(prompt, **kwargs):
+        return json.dumps([SCHEMA_ECHO])
+
+    monkeypatch.setattr(shot_generator, "generate", fake_generate)
+    with pytest.raises(ValueError, match="JSON Schema definition"):
+        await shot_generator.generate_shots(SCENE, CONSTRAINTS)
+
+
+async def test_generate_shots_fails_when_echo_mixed_with_valid_shots(monkeypatch):
+    async def fake_generate(prompt, **kwargs):
+        return json.dumps([SCHEMA_ECHO, SHOTS[0]])
+
+    monkeypatch.setattr(shot_generator, "generate", fake_generate)
+    with pytest.raises(ValueError, match="JSON Schema definition"):
+        await shot_generator.generate_shots(SCENE, CONSTRAINTS)
+
+
+async def test_generate_shots_aliases_type_key(monkeypatch):
+    aliased = {("type" if k == "shot_type" else k): v for k, v in SHOTS[0].items()}
+
+    async def fake_generate(prompt, **kwargs):
+        return json.dumps([aliased])
+
+    monkeypatch.setattr(shot_generator, "generate", fake_generate)
+    shots = await shot_generator.generate_shots(SCENE, CONSTRAINTS)
+    assert len(shots) == 1
+    assert shots[0].shot_type is ShotType.WIDE

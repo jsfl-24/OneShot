@@ -116,8 +116,10 @@ Cinematography rules:
   peak-tension moment (an eye, a glance, an object). Never use more than 2 Extreme
   Close-Ups in one scene - do not overuse.
 
-Return ONLY a valid JSON array of shot objects. Every object must conform exactly to
-this schema (all required keys present):
+Return ONLY a valid JSON array of shot objects. Every array element must be an
+actual cinematic shot; never reproduce, echo, or include this JSON Schema
+definition itself in the output - return only the requested shot data. Every
+object must conform exactly to this schema (all required keys present):
 
 {schema_json}
 """

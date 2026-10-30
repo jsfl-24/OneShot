@@ -6,6 +6,7 @@ here (the service layer owns persistence).
 """
 
 import json
+import logging
 from typing import Any
 
 from oneshot.ai.json_output import parse_json
@@ -13,6 +14,37 @@ from oneshot.ai.llm import generate
 from oneshot.ai.prompts import SHOT_GENERATION_PROMPT
 from oneshot.config import settings
 from oneshot.schemas import AIShotData, CameraAngle, CameraMovement, ShotType
+
+logger = logging.getLogger(__name__)
+
+_SHOT_TYPE_VALUES = frozenset(e.value for e in ShotType)
+
+# Keys a JSON-Schema definition may carry. An item whose keys are a subset of
+# these (and that defines "items" or "properties") is the schema being echoed
+# back, not a generated shot.
+_SCHEMA_KEYS = frozenset(
+    {
+        "$defs",
+        "$id",
+        "$schema",
+        "additionalProperties",
+        "definitions",
+        "description",
+        "items",
+        "maxItems",
+        "minItems",
+        "properties",
+        "required",
+        "title",
+        "type",
+    }
+)
+
+
+def _is_schema_echo(item: dict[str, Any]) -> bool:
+    """True when ``item`` is a JSON-Schema definition rather than a shot."""
+    keys = set(item)
+    return keys <= _SCHEMA_KEYS and bool(keys & {"items", "properties"})
 
 
 def build_shot_schema() -> dict[str, Any]:
@@ -86,10 +118,16 @@ async def generate_shots(
     for index, item in enumerate(data, start=1):
         if not isinstance(item, dict):
             raise ValueError(f"Shot {index} is not an object: {item!r}")  # noqa: TRY004
-        if "shot_type" not in item and "type" in item:
+        if _is_schema_echo(item):
+            raise ValueError(
+                "LLM returned a JSON Schema definition instead of shot data "
+                f"(schema echo at item {index}): {item!r}"
+            )
+        if "shot_type" not in item and item.get("type") in _SHOT_TYPE_VALUES:
             item["shot_type"] = item.pop("type")
         try:
             shots.append(AIShotData.model_validate(item))
         except Exception as exc:  # validation details are worth surfacing
+            logger.debug("Raw LLM shot response failed validation: %s", response)
             raise ValueError(f"Shot {index} failed validation: {exc}") from exc
     return shots

@@ -2,7 +2,13 @@
 
 ## Project status
 
-- This is a **pre-build repo**: no application code, no manifests, no Python env yet. Git repo has no commits.
+- Phases 1–4 (backend foundation, document/scene extraction, structured scene
+  analysis, shot segmentation) are **implemented and verified**: FastAPI +
+  SQLite/SQLModel backend under `src/oneshot/`, Alembic migrations, 140 passing
+  tests. See `docs/STATUS.md` for the phase-by-phase log.
+- **Phase 5 — Shot Editing and Validation** is next.
+- Phase 6 (Cinematic Knowledge / RAG — mandatory in the shot pipeline) and
+  Phase 7 (Storyboard Generation) remain pending.
 - `docs/ONESHOT.md` is the authoritative product spec and the source of truth for all work. Read it before writing code; it defines the tech stack (Python, FastAPI, Pydantic, SQLite, Qdrant, LiteRT/Gemma), module layout, and API surface. `docs/plan.md` is the task checklist tracking progress.
 - Python environment is managed with **uv** (not mamba/conda). Create/use the venv via `uv sync` / `uv run`; install packages as `uv add`, run all commands through `uv run`.
 

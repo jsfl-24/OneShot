@@ -1,14 +1,14 @@
 """LLM and embedding abstraction layer.
 
-Supports three providers, selectable per deployment, per environment,
+Supports four providers, selectable per deployment, per environment,
 and per request:
 
-- ``gemini`` (online, default) -> Google Generative AI API; requires ``GEMINI_API_KEY``.
-- ``ollama`` (local)  -> privacy-preserving, used in production.
-- ``huggingface`` (online) -> development convenience via Hugging Face
-  Inference API; requires ``HF_TOKEN``.
-- ``litert`` (local, on-device) -> Gemma 4 E2B served by the LiteRT LLM
-  service; embeddings via the EmbeddingGemma 300M HTTP service.
+- ``litert`` (local, on-device, default) -> Gemma 4 E2B served by the LiteRT
+  LLM service; embeddings via the EmbeddingGemma 300M HTTP service.
+- ``ollama`` (local)  -> privacy-preserving local serving.
+- ``gemini`` (online) -> Google Generative AI API; requires ``GEMINI_API_KEY``.
+- ``huggingface`` (online) -> development convenience via the Hugging Face
+  Inference Providers router; requires ``HF_TOKEN``.
 
 The provider choice is resolved in this order:
 1. An explicit ``provider`` argument passed by the caller.

@@ -124,6 +124,14 @@ FastAPI route
 
 API routes must remain thin. AI logic must not be placed directly in route files.
 
+### Persistence notes
+
+- SQLite **foreign-key enforcement is disabled** in this application.
+- Parent deletion therefore requires explicit **child-first cleanup** in the
+  service layer (see `services/project_service.py`).
+- Any new database entity must account for this: FKs are declarative only;
+  cascade behavior must be implemented and tested manually.
+
 ## 6. Core Domain Entities
 
 ### Project
