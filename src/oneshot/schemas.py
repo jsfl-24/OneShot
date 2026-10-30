@@ -206,6 +206,10 @@ class ShotBatchGenerateRequest(BaseModel):
     replace_existing: bool = False
 
 
+class ShotReorderRequest(BaseModel):
+    shot_ids: list[int]
+
+
 class ShotUpdate(BaseModel):
     shot_type: ShotType | None = None
     camera_angle: CameraAngle | None = None

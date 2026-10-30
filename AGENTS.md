@@ -63,3 +63,27 @@
 
 - Always follow the UI design system when creating or reviewing components or pages.
 - A `DESIGN.md` design system will be added during Phase 8 (frontend). Until it exists, load the `frontend-design` skill before any UI work.
+
+## Development Workflow
+
+1. Read relevant existing code before making changes.
+2. Verify the current implementation instead of assuming documented status is accurate.
+3. Prefer minimal, incremental changes over unnecessary refactoring.
+4. Reuse existing schemas, services, utilities and conventions.
+5. Never modify unrelated functionality.
+6. Preserve existing user changes and uncommitted work.
+7. Never delete code, files or dependencies without verifying they are genuinely unused.
+8. Do not silently change API contracts, database schemas or application behavior.
+9. Add regression tests for every bug fix.
+10. Run relevant tests and Ruff after implementation.
+11. Report actual test results, modified files and unresolved issues.
+12. Never claim functionality is verified without evidence.
+
+## Task Execution
+
+* Planning and implementation are separate stages for architectural or multi-module changes.
+* For small, isolated fixes, avoid unnecessary planning overhead.
+* Request approval before proceeding when a proposed change has significant architectural or data-model implications.
+* Do not repeatedly request approval for already-approved task requirements.
+* Work only within the explicitly assigned scope.
+* Stop after completing the requested milestone.

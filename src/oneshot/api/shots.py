@@ -9,9 +9,15 @@ from oneshot.schemas import (
     Shot,
     ShotGenerateRequest,
     ShotListResponse,
+    ShotReorderRequest,
+    ShotUpdate,
 )
 from oneshot.services import shot_service
-from oneshot.services.errors import ConflictError, NotFoundError
+from oneshot.services.errors import (
+    ConflictError,
+    InvalidDataError,
+    NotFoundError,
+)
 
 router = APIRouter(prefix="/shots", tags=["shots"])
 
@@ -42,3 +48,39 @@ def get_shot(shot_id: int, session: DbSession):
     if shot is None:
         raise HTTPException(status_code=404, detail=f"Shot {shot_id} not found")
     return shot
+
+
+@router.patch("/{shot_id}", response_model=Shot)
+def update_shot(shot_id: int, payload: ShotUpdate, session: DbSession):
+    """Partially update editable shot fields (approval uses its own endpoint)."""
+    try:
+        return shot_service.update_shot(shot_id, payload, session)
+    except (NotFoundError, ConflictError, InvalidDataError) as exc:
+        raise http_error(exc)
+
+
+@router.delete("/{shot_id}", status_code=204)
+def delete_shot(shot_id: int, session: DbSession):
+    """Delete a draft shot; approved shots are protected."""
+    try:
+        shot_service.delete_shot(shot_id, session)
+    except (NotFoundError, ConflictError, InvalidDataError) as exc:
+        raise http_error(exc)
+
+
+@router.put("/{shot_id}/reorder", response_model=list[Shot])
+def reorder_shots(shot_id: int, payload: ShotReorderRequest, session: DbSession):
+    """Reorder the draft shots of the scene that ``shot_id`` belongs to."""
+    try:
+        return shot_service.reorder_shots(shot_id, payload.shot_ids, session)
+    except (NotFoundError, ConflictError, InvalidDataError) as exc:
+        raise http_error(exc)
+
+
+@router.post("/{shot_id}/approve", response_model=Shot)
+def approve_shot(shot_id: int, session: DbSession):
+    """Validate and approve a draft shot."""
+    try:
+        return shot_service.approve_shot(shot_id, session)
+    except (NotFoundError, ConflictError, InvalidDataError) as exc:
+        raise http_error(exc)

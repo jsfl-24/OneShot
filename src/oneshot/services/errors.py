@@ -7,3 +7,7 @@ class NotFoundError(ValueError):
 
 class ConflictError(ValueError):
     """Raised when an operation conflicts with the current state of a resource."""
+
+
+class InvalidDataError(ValueError):
+    """Raised when caller-supplied data is structurally invalid (bad request)."""

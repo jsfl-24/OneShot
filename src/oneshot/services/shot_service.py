@@ -22,13 +22,14 @@ from oneshot.schemas import (
     ShotListResponse,
     ShotStatus,
     ShotType,
+    ShotUpdate,
     shot_ref,
 )
 from oneshot.schemas import (
     Shot as ShotSchema,
 )
 from oneshot.services import scene_service
-from oneshot.services.errors import ConflictError, NotFoundError
+from oneshot.services.errors import ConflictError, InvalidDataError, NotFoundError
 
 _EMPTY_CHARACTERS: list[str] = []
 
@@ -400,3 +401,209 @@ async def generate_shots_for_screenplay(
         )
         results.append(result)
     return results
+
+
+# --- Editing, deletion, reordering, approval ---
+
+_AUTO_CONTINUITY_MARKER = "[auto]"
+
+
+def _structural_errors(shot: Shot) -> list[str]:
+    """Data-integrity problems that make a shot invalid regardless of constraints."""
+    errors: list[str] = []
+    if not (shot.lens or "").strip():
+        errors.append("lens must not be empty")
+    if not 1 <= shot.duration <= 120:
+        errors.append(f"duration {shot.duration}s out of range (1-120)")
+    if not (shot.action or "").strip():
+        errors.append("action must not be empty")
+    if not (shot.visual_description or "").strip():
+        errors.append("visual_description must not be empty")
+    return errors
+
+
+def _constraint_errors(shot: Shot, scene: Scene, session: Session) -> list[str]:
+    """Cinematic/constraint violations for a persisted shot (reuses validate_shot)."""
+    candidate = AIShotData(
+        shot_type=ShotType(shot.shot_type),
+        camera_angle=CameraAngle(shot.camera_angle),
+        lens=shot.lens,
+        camera_movement=CameraMovement(shot.camera_movement),
+        duration=shot.duration,
+        characters=list(shot.characters or []),
+        dialogue=shot.dialogue,
+        action=shot.action,
+        visual_description=shot.visual_description,
+        continuity_notes=shot.continuity_notes,
+        director_notes=shot.director_notes,
+    )
+    effective = effective_constraints(session, scene.project_id, scene.id)
+    hard_errors, _ = validate_shot(candidate, scene, effective)
+    return hard_errors
+
+
+def _strip_auto_continuity(shot: Shot) -> None:
+    """Remove previously generated ``[auto]`` notes before rebuilding them."""
+    notes = shot.continuity_notes or ""
+    marker = notes.find(_AUTO_CONTINUITY_MARKER)
+    if marker != -1:
+        notes = notes[:marker]
+    shot.continuity_notes = notes.strip() or None
+
+
+def _scene_for_shot(shot: Shot, session: Session) -> Scene:
+    scene = session.get(Scene, shot.scene_id)
+    if scene is None:
+        raise NotFoundError(f"Scene {shot.scene_id} for shot {shot.id} not found")
+    return scene
+
+
+def _rebuild_scene_continuity(shots: list[Shot], scene: Scene, session: Session) -> None:
+    """Strip stale auto notes, rebuild them in shot order, and renumber refs implicitly."""
+    for shot in shots:
+        _strip_auto_continuity(shot)
+    ordered = sorted(shots, key=lambda s: s.shot_number)
+    build_continuity_links(ordered, scene.scene_number)
+    for shot in shots:
+        shot.updated_at = datetime.now(UTC)
+        session.add(shot)
+
+
+def _renumber_drafts(shots: list[Shot], session: Session) -> None:
+    """Renumber drafts contiguously after the highest approved shot number."""
+    approved = [shot for shot in shots if shot.status == "approved"]
+    drafts = sorted(
+        (shot for shot in shots if shot.status != "approved"),
+        key=lambda s: s.shot_number,
+    )
+    next_number = max((shot.shot_number for shot in approved), default=0) + 1
+    for offset, shot in enumerate(drafts):
+        shot.shot_number = next_number + offset
+        shot.updated_at = datetime.now(UTC)
+        session.add(shot)
+
+
+def update_shot(
+    shot_id: int,
+    data: ShotUpdate,
+    session: Session,
+) -> ShotSchema:
+    """Partially update editable shot fields; ``status`` changes only via approve."""
+    shot = get_shot(shot_id, session)
+    if shot is None:
+        raise NotFoundError(f"Shot {shot_id} not found")
+
+    changes = data.model_dump(exclude_unset=True)
+    changes.pop("status", None)  # approval is a separate, validated operation
+    if not changes:
+        scene = _scene_for_shot(shot, session)
+        return to_schema(shot, scene.scene_number)
+
+    scene = _scene_for_shot(shot, session)
+    for key, value in changes.items():
+        setattr(shot, key, value)
+
+    structural = _structural_errors(shot)
+    if structural:
+        session.rollback()
+        raise InvalidDataError(f"Shot {shot_id} is invalid: {'; '.join(structural)}")
+
+    conflict = _constraint_errors(shot, scene, session)
+    if conflict:
+        session.rollback()
+        raise ConflictError(
+            f"Shot {shot_id} violates production constraints: {'; '.join(conflict)}"
+        )
+
+    shot.updated_at = datetime.now(UTC)
+    session.add(shot)
+    session.commit()
+    session.refresh(shot)
+    return to_schema(shot, scene.scene_number)
+
+
+def delete_shot(shot_id: int, session: Session) -> None:
+    """Delete a draft shot; approved shots are protected. Renumbers remaining drafts."""
+    shot = get_shot(shot_id, session)
+    if shot is None:
+        raise NotFoundError(f"Shot {shot_id} not found")
+    if shot.status == "approved":
+        raise ConflictError(f"Shot {shot_id} is approved and cannot be deleted")
+
+    scene = _scene_for_shot(shot, session)
+    session.delete(shot)
+    session.flush()
+
+    remaining = list_shots(shot.scene_id, session)
+    _renumber_drafts(remaining, session)
+    _rebuild_scene_continuity(remaining, scene, session)
+    session.commit()
+
+
+def reorder_shots(shot_id: int, shot_ids: list[int], session: Session) -> list[ShotSchema]:
+    """Reorder the draft shots of the scene that ``shot_id`` belongs to."""
+    anchor = get_shot(shot_id, session)
+    if anchor is None:
+        raise NotFoundError(f"Shot {shot_id} not found")
+    scene = _scene_for_shot(anchor, session)
+
+    if len(shot_ids) != len(set(shot_ids)):
+        raise InvalidDataError("shot_ids must not contain duplicates")
+
+    all_shots = list_shots(anchor.scene_id, session)
+    by_id = {shot.id: shot for shot in all_shots}
+
+    ordered: list[Shot] = []
+    for candidate_id in shot_ids:
+        candidate = by_id.get(candidate_id)
+        if candidate is None:
+            if get_shot(candidate_id, session) is None:
+                raise NotFoundError(f"Shot {candidate_id} not found")
+            raise InvalidDataError(
+                f"Shot {candidate_id} does not belong to scene {anchor.scene_id}"
+            )
+        if candidate.status == "approved":
+            raise InvalidDataError("approved shots cannot be reordered")
+        ordered.append(candidate)
+
+    draft_ids = {shot.id for shot in all_shots if shot.status != "approved"}
+    if {shot.id for shot in ordered} != draft_ids:
+        raise InvalidDataError(
+            f"shot_ids must contain every draft shot of scene {anchor.scene_id} exactly once"
+        )
+
+    approved = [shot for shot in all_shots if shot.status == "approved"]
+    next_number = max((shot.shot_number for shot in approved), default=0) + 1
+    for offset, shot in enumerate(ordered):
+        shot.shot_number = next_number + offset
+
+    _rebuild_scene_continuity(all_shots, scene, session)
+    session.commit()
+
+    result = list_shots(anchor.scene_id, session)
+    return [to_schema(shot, scene.scene_number) for shot in result]
+
+
+def approve_shot(shot_id: int, session: Session) -> ShotSchema:
+    """Validate a draft shot against structural rules and constraints, then approve it."""
+    shot = get_shot(shot_id, session)
+    if shot is None:
+        raise NotFoundError(f"Shot {shot_id} not found")
+    if shot.status == "approved":
+        raise ConflictError(f"Shot {shot_id} is already approved")
+
+    scene = _scene_for_shot(shot, session)
+    errors = _structural_errors(shot)
+    if not errors:
+        errors = _constraint_errors(shot, scene, session)
+    if errors:
+        raise ConflictError(
+            f"Shot {shot_id} cannot be approved: {'; '.join(errors)}"
+        )
+
+    shot.status = "approved"
+    shot.updated_at = datetime.now(UTC)
+    session.add(shot)
+    session.commit()
+    session.refresh(shot)
+    return to_schema(shot, scene.scene_number)

@@ -1,8 +1,8 @@
 # OneShot — Development Status
 
-> Last updated: 2026-09-25
-> Current phase: **Phase 4 — Scene to Shot Segmentation (DONE)**
-> Next phase: **Phase 5 — Shot Editing and Validation**
+> Last updated: 2026-10-30
+> Current phase: **Phase 5 — Shot Editing and Validation (DONE)**
+> Next phase: **Phase 6 — Cinematic Knowledge / RAG**
 
 This file is a temporary, living log of project development status. It is
 updated after each phase milestone and whenever a significant issue or
@@ -19,7 +19,7 @@ we actually stand and what went wrong along the way.
 | 2 | Document to Scene Extraction | DONE | PDF/DOCX/TXT ingest, scene detection, persistence, services, API, tests |
 | 3 | Structured Scene Understanding | DONE | LLM detection + typo tolerance, validated analysis, full pipeline, UI buttons, migration, tests |
 | 4 | Scene to Shot Segmentation | DONE | Shot + ProductionConstraints models, generator, validation, continuity, constraint merge, endpoints, pipeline hook, tests |
-| 5 | Shot Editing and Validation | NOT STARTED | — |
+| 5 | Shot Editing and Validation | DONE | PATCH/DELETE/reorder/approve, draft renumbering, continuity rebuild, 22 new tests |
 | 6 | Cinematic Knowledge / RAG | NOT STARTED | Mandatory, uses online/local provider |
 | 7 | Storyboard Generation | NOT STARTED | — |
 | 8 | Frontend | NOT STARTED | — |
@@ -114,6 +114,26 @@ Implemented:
   CTA. `/ui` assets now served with `Cache-Control: no-cache` via ASGI middleware
   to prevent stale `app.js`. (Verified live: /ui + assets 200 with no-cache.)
 
+### Phase 5 — Shot Editing and Validation (DONE)
+
+Implemented:
+- `PATCH /shots/{shot_id}` — partial edits via `ShotUpdate`; `status` intentionally
+  ignored (approval has its own endpoint); structural errors → 400, constraint
+  violations → 409, no partially-applied updates (session rollback)
+- `DELETE /shots/{shot_id}` — drafts only; approved shots return 409; remaining
+  drafts renumbered contiguously after the highest approved number
+- `PUT /shots/{shot_id}/reorder` — path shot identifies the scene; body must be a
+  permutation of that scene's drafts; foreign-scene shots → 400, unknown → 404,
+  approved shots cannot be reordered (400); approved numbers preserved
+- `POST /shots/{shot_id}/approve` — reuses `validate_shot` (structural + constraint
+  rules); already approved → 409
+- Continuity: stale `[auto]` notes stripped and rebuilt after delete/reorder;
+  `ref` values stay consistent because they are derived in `to_schema`
+- New domain error `InvalidDataError` mapped to 400 in `api/errors.py`
+- Tests: 22 new tests in `tests/test_api_shots.py`, incl. invalid update (400),
+  constraint conflict (409), approved protection, reorder/continuity, and the
+  generate → edit → delete → reorder → approve → retrieve workflow
+
 ---
 ## Issues & Decisions Log
 
@@ -167,6 +187,6 @@ Implemented:
 - Environment: `uv` — symlink `.venv` via `uv sync` (deps from `pyproject.toml`); activate with `uv run`
 - Test command: `uv run pytest`
 - Lint command: `uv run ruff check src tests`
-- Latest run: 143 passed, 2 warnings (deprecation), ruff clean (2026-09-25)
+- Latest run: 163 passed, 2 warnings (deprecation), ruff clean (2026-10-30)
 - Provider: default **LiteRT (local)** — Gemma 4 E2B (`gemma-4-E2B-it`) via `litert_llm_service` on `:8101`, EmbeddingGemma 300M via `embeddinggemma-service` on `:8100`.
 - Verified end-to-end with live LiteRT services (2026-09-21): `/providers/ping` (LLM + embeddings), project → screenplay upload → full pipeline → 4/4 scenes analyzed → screenplay metadata extracted.

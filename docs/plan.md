@@ -164,7 +164,7 @@ Generate a constraint-aware, cinematic shot list from a structured scene using t
 
 ## Phase 5: Shot Editing and Validation
 
-**Status:** NOT STARTED
+**Status:** DONE (2026-10-30)
 
 ### Goals
 
@@ -172,16 +172,27 @@ Full CRUD on shots with validation and status management (draft/approved).
 
 ### Tasks
 
-- [ ] `GET /shots/{shot_id}` — retrieve a single shot
-- [ ] `GET /scenes/{scene_id}/shots` — list all shots for a scene
-- [ ] `PATCH /shots/{shot_id}` — update individual shot fields
-- [ ] `PUT /shots/{shot_id}/reorder` — change shot order within a scene
-- [ ] `DELETE /shots/{shot_id}` — remove a shot
-- [ ] `POST /shots/{shot_id}/approve` — set status to approved
-- [ ] Implement shot validation service: required fields, valid enums, duration > 0, scene reference exists
-- [ ] Validate on every create/update — reject invalid shots with clear error messages
-- [ ] Add tests for each endpoint and validation rule
-- [ ] Verify: generate shots -> edit fields -> reorder -> approve -> retrieve
+- [X] `GET /shots/{shot_id}` — retrieve a single shot
+- [X] `GET /scenes/{scene_id}/shots` — list all shots for a scene
+- [X] `PATCH /shots/{shot_id}` — update individual shot fields (`ShotUpdate`, partial; `status` ignored)
+- [X] `PUT /shots/{shot_id}/reorder` — reorder the drafts of the path shot's scene
+- [X] `DELETE /shots/{shot_id}` — remove a draft; approved shots protected (409)
+- [X] `POST /shots/{shot_id}/approve` — validate then set status to approved
+- [X] Shot validation service: structural checks (400 `InvalidDataError`) vs constraint conflicts (409 `ConflictError`)
+- [X] Validate on every edit/approval — reject invalid shots with clear error messages
+- [X] Add tests for each endpoint and validation rule (22 tests incl. full workflow)
+- [X] Verify: generate shots -> edit -> delete -> reorder -> approve -> retrieve
+
+### Phase 5 decisions (implemented)
+
+- PATCH ignores `status`; approval only via `POST /shots/{shot_id}/approve`.
+- Approved shots are never deleted or reordered; their numbers are preserved.
+- Deletion renumbers remaining drafts contiguously after the highest approved number.
+- Reorder covers drafts only (body is a permutation of the scene's drafts); the path
+  shot identifies the scene and every body shot must belong to it.
+- Auto continuity notes are stripped and rebuilt on delete/reorder, so `[auto]`
+  references and `ref`s stay consistent (`shot_ref` is derived at serialization).
+- Invalid input (bad duration/lens/action) -> 400; cinematic constraint violation -> 409.
 
 ---
 
@@ -293,10 +304,10 @@ The backend is ready for frontend when it can:
 | `POST /shots/generate`                   | 4     | DONE   |
 | `GET /shots/{id}`                        | 4     | DONE   |
 | `GET /scenes/{id}/shots`                 | 4     | DONE   |
-| `PATCH /shots/{id}`                      | 5     | TODO   |
-| `PUT /shots/{id}/reorder`                | 5     | TODO   |
-| `DELETE /shots/{id}`                     | 5     | TODO   |
-| `POST /shots/{id}/approve`               | 5     | TODO   |
+| `PATCH /shots/{id}`                      | 5     | DONE   |
+| `PUT /shots/{id}/reorder`                | 5     | DONE   |
+| `DELETE /shots/{id}`                     | 5     | DONE   |
+| `POST /shots/{id}/approve`               | 5     | DONE   |
 | `POST /shots/{id}/storyboard`            | 7     | TODO   |
 | `GET /shots/{id}/storyboard`             | 7     | TODO   |
 | `PUT /projects/{id}/constraints`         | 4     | DONE   |
