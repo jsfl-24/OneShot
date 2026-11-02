@@ -111,13 +111,16 @@
           <h2 class="panel-title">Pipeline</h2>
           <p class="panel-note" id="pipeline-note">Select a screenplay to detect scenes, analyze the script, and extract film metadata.</p>
         </div>
+        <ol class="setup-steps" aria-label="Setup workflow">
+          <li><strong>Upload</strong> a screenplay in the left rail — scenes are parsed on upload.</li>
+          <li><strong>Detect &amp; analyze</strong> — run the pipeline to identify scenes and extract their structure.</li>
+          <li><strong>Review scenes</strong> — check the Scenes tab before generating coverage.</li>
+          <li><strong>Configure constraints</strong> — set project limits, then per-scene overrides where the story needs it.</li>
+          <li><strong>Generate shots</strong> — review effective constraints in the Shots tab, then generate, edit and approve.</li>
+        </ol>
         <div class="pipeline-actions">
           <button type="button" id="btn-full-pipeline" class="btn primary">Run full pipeline</button>
           <button type="button" id="btn-detect" class="btn ghost">Detect scenes</button>
-          <label class="checkbox-label" for="pipeline-generate-shots">
-            <input type="checkbox" id="pipeline-generate-shots">
-            <span>Generate shots at end of pipeline</span>
-          </label>
         </div>
         <div id="screenplay-meta" class="meta-panel"></div>
         <div id="screenplay-meta-empty" class="empty-state empty-state-panel"></div>
@@ -144,15 +147,19 @@
             <span>Replace existing drafts</span>
           </label>
         </div>
+        <div id="shot-constraints-summary" class="shot-constraints-summary" role="note" hidden></div>
         <div id="shot-warnings" class="shot-warnings" role="status" aria-live="polite"></div>
         <div id="shot-scene-list" class="scene-list"></div>
         <div id="shot-empty" class="empty-state empty-state-panel"></div>
       </section>
 
       <section class="tab-panel" data-tab-panel="constraints" id="panel-constraints" role="tabpanel" aria-labelledby="constraints-tab" hidden>
-        <div class="panel-head">
-          <h2 class="panel-title">Constraints</h2>
-          <p class="panel-note">Set production limits once, then tune them for an individual scene when the story needs a different texture.</p>
+        <div class="panel-head panel-head-actions">
+          <div>
+            <h2 class="panel-title">Constraints</h2>
+            <p class="panel-note">Set production limits once, then tune them for an individual scene when the story needs a different texture.</p>
+          </div>
+          <button type="button" id="btn-continue-to-shots" class="btn primary">Continue to shot generation</button>
         </div>
         <details id="project-constraints" class="constraints-panel">
           <summary>Project constraints</summary>

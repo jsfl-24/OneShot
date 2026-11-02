@@ -420,6 +420,32 @@ p {
   font-size: 14px;
 }
 
+.panel-head-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px 24px;
+  flex-wrap: wrap;
+}
+
+.setup-steps {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 17px;
+  padding: 13px 16px 13px 33px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-raised);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.setup-steps strong {
+  color: var(--text);
+  font-weight: 620;
+}
+
 .pipeline-actions,
 .shot-batch-actions {
   display: flex;
@@ -733,6 +759,33 @@ p {
 
 .scene-analyze-btn {
   margin: 0 15px 15px;
+}
+
+.scene-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 15px 13px;
+}
+
+.scene-shortcuts .btn {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.shot-constraints-summary {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.shot-constraints-summary strong {
+  color: var(--text);
+  font-weight: 620;
 }
 
 .shot-batch-actions {
@@ -1137,6 +1190,34 @@ dialog.constraints-dialog::backdrop {
 
 .scene-inline-constraints > summary {
   align-items: center;
+}
+
+.scene-constraint-summary {
+  display: grid;
+  gap: 8px;
+  padding: 12px 15px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.constraint-summary-line {
+  margin: 0;
+}
+
+.constraint-summary-line strong {
+  color: var(--text);
+  font-weight: 620;
+}
+
+.constraint-summary-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.constraint-summary-actions .btn {
+  padding: 5px 10px;
+  font-size: 12px;
 }
 
 .activity-console {

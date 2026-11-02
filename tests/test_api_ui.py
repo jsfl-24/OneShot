@@ -76,3 +76,24 @@ def test_ui_constraints_dialog_and_inline_panel(client):
         "openConstraintsDialog",
     ):
         assert marker in served
+
+
+def test_ui_setup_workflow_markers(client):
+    index = client.get("/ui")
+    assert index.status_code == 200
+    for marker in (
+        'class="setup-steps"',
+        'id="btn-continue-to-shots"',
+        'id="shot-constraints-summary"',
+    ):
+        assert marker in index.text
+
+
+def test_ui_pipeline_no_longer_generates_shots(client):
+    index = client.get("/ui")
+    script = client.get("/ui/app.js")
+    assert index.status_code == 200
+    assert script.status_code == 200
+    served = index.text + script.text
+    assert "pipeline-generate-shots" not in served
+    assert "generate_shots=false" in script.text
