@@ -97,3 +97,31 @@ def test_ui_pipeline_no_longer_generates_shots(client):
     served = index.text + script.text
     assert "pipeline-generate-shots" not in served
     assert "generate_shots=false" in script.text
+
+
+def test_ui_stage_shell_and_hash_routing(client):
+    index = client.get("/ui")
+    script = client.get("/ui/app.js")
+    assert index.status_code == 200
+    assert script.status_code == 200
+    for marker in (
+        'class="stage-rail"',
+        'data-tab="script"',
+        'data-tab="scenes"',
+        'data-tab="constraints"',
+        'data-tab="storyboard"',
+        'id="activity-toggle"',
+        'id="activity-close"',
+        'class="drawer-scrim"',
+        'id="app-context"',
+    ):
+        assert marker in index.text
+    for marker in (
+        "function stageFromHash",
+        "hashchange",
+        "function setActivityDrawer",
+        "function renderStageStatus",
+    ):
+        assert marker in script.text
+    assert "unpkg.com" not in index.text
+    assert 'data-tab="pipeline"' not in index.text

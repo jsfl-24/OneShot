@@ -5,9 +5,11 @@
   const $$ = (selector) => [...document.querySelectorAll(selector)];
   const ACTIVITY_KEY = "oneshot.activity";
   const ACTION_TIP_ATTRIBUTE = "data-tip";
+  const STAGES = ["script", "scenes", "constraints", "shots", "storyboard"];
 
   const state = {
-    activeTab: "pipeline",
+    activeTab: "script",
+    activityDrawerOpen: false,
     projects: [],
     selectedProjectId: null,
     screenplays: [],
@@ -43,6 +45,8 @@
   };
 
   const els = {
+    appContext: $("#app-context"),
+    stageRail: $("#stage-rail"),
     healthChip: $("#health-chip"),
     healthText: $("#health-text"),
     settingsToggle: $("#settings-toggle"),
@@ -87,6 +91,10 @@
     sceneConstraintsList: $("#scene-constraints-list"),
     sceneConstraintsEmpty: $("#scene-constraints-empty"),
     activityConsole: $("#activity-console"),
+    activityToggle: $("#activity-toggle"),
+    activityClose: $("#activity-close"),
+    activityScrim: $("#drawer-scrim"),
+    activityCount: $("#activity-count"),
     activityLog: $("#activity-log"),
     activityEmpty: $("#activity-empty"),
     taskCard: $("#task-card"),
@@ -237,6 +245,14 @@
       els.activityLog.appendChild(item);
     }
     if (els.activityEmpty) els.activityEmpty.hidden = state.activityEntries.length > 0;
+    renderActivityCount();
+  }
+
+  function renderActivityCount() {
+    if (!els.activityCount) return;
+    const count = state.activityEntries.length;
+    els.activityCount.textContent = String(count);
+    els.activityCount.hidden = count === 0;
   }
 
   function hydrateActivity() {
@@ -446,6 +462,8 @@
       : "Select a screenplay to detect and analyze scenes. Shot generation happens later, once constraints are configured.";
     if (els.projectCount) els.projectCount.textContent = String(state.projects.length);
     if (els.screenplayCount) els.screenplayCount.textContent = String(state.screenplays.length);
+    renderAppContext();
+    renderStageStatus();
   }
 
   function renderEmptyState(element, { title, detail, ctaLabel, ctaHandler } = {}) {
@@ -491,6 +509,73 @@
 
   function focusProjectForm() {
     els.projectName.focus();
+  }
+
+  function stageFromHash() {
+    const value = window.location.hash.replace(/^#\/?/, "").toLowerCase();
+    return STAGES.includes(value) ? value : null;
+  }
+
+  function focusPipelineActions() {
+    goToTab("scenes");
+    if (!els.btnFullPipeline) return;
+    els.btnFullPipeline.scrollIntoView({ block: "center", behavior: "auto" });
+    els.btnFullPipeline.focus({ preventScroll: true });
+  }
+
+  function renderAppContext() {
+    if (!els.appContext) return;
+    els.appContext.textContent = "";
+    const project = state.projects.find((item) => sameId(item.id, state.selectedProjectId));
+    const screenplay = state.screenplays.find((item) => sameId(item.id, state.selectedScreenplayId));
+    if (!project) {
+      els.appContext.hidden = true;
+      return;
+    }
+    const addSegment = (label, value) => {
+      const segment = document.createElement("span");
+      segment.className = "context-segment";
+      const strong = document.createElement("strong");
+      strong.textContent = value;
+      segment.append(document.createTextNode(`${label} `), strong);
+      els.appContext.appendChild(segment);
+    };
+    addSegment("Project", project.name);
+    if (screenplay) addSegment("Script", screenplay.filename);
+    els.appContext.hidden = false;
+  }
+
+  function renderStageStatus() {
+    const shots = Object.values(state.shotsByScene).flat();
+    const hasApproved = shots.some((shot) => shot && shot.status === "approved");
+    const scenesAnalyzed = state.scenes.length > 0 && state.scenes.every((scene) => scene.analyzed);
+    const hasScenes = state.scenes.length > 0;
+    const status = {
+      script: state.selectedScreenplayId != null ? "done" : state.selectedProjectId != null ? "ready" : "",
+      scenes: scenesAnalyzed ? "done" : hasScenes ? "ready" : "",
+      constraints: hasScenes ? "ready" : "",
+      shots: hasApproved ? "done" : hasScenes ? "ready" : "",
+      storyboard: "locked",
+    };
+    for (const stage of $$(".stage")) {
+      const dot = stage.querySelector(".stage-dot");
+      if (dot) dot.dataset.state = status[stage.dataset.tab] || "";
+    }
+  }
+
+  function setActivityDrawer(open, { restoreFocus = true } = {}) {
+    if (!els.activityConsole) return;
+    const isOpen = Boolean(open);
+    state.activityDrawerOpen = isOpen;
+    els.activityConsole.classList.toggle("is-open", isOpen);
+    els.activityConsole.setAttribute("aria-hidden", String(!isOpen));
+    if (els.activityScrim) els.activityScrim.classList.toggle("is-open", isOpen);
+    if (els.activityToggle) els.activityToggle.setAttribute("aria-expanded", String(isOpen));
+    if (isOpen) {
+      window.requestAnimationFrame(() => els.activityClose?.focus());
+    } else if (restoreFocus) {
+      els.activityToggle?.focus();
+    }
   }
 
   function highlightSelected(list, selectedId) {
@@ -576,7 +661,7 @@
       if (state.screenplaysLoadingFor) {
         els.screenplayEmpty.textContent = "Loading screenplays…";
       } else if (state.selectedProjectId == null) {
-        els.screenplayEmpty.textContent = "Select a project first.";
+        els.screenplayEmpty.hidden = true;
       } else {
         els.screenplayEmpty.textContent = "No screenplays in this project yet. Upload one below.";
       }
@@ -600,14 +685,16 @@
     els.screenplayMeta.textContent = "";
     const screenplay = state.screenplays.find((item) => sameId(item.id, state.selectedScreenplayId));
     if (!screenplay) {
+      els.screenplayMeta.hidden = true;
       renderEmptyState(els.screenplayMetaEmpty, {
         title: "No screenplay selected.",
-        detail: "Choose a screenplay in the left rail to see its metadata.",
+        detail: "Choose a screenplay in the Script stage to see its metadata.",
         ctaLabel: "Choose a screenplay",
         ctaHandler: focusScreenplayList,
       });
       return;
     }
+    els.screenplayMeta.hidden = false;
     els.screenplayMetaEmpty.hidden = true;
     const meta = document.createElement("div");
     meta.className = "meta-block";
@@ -648,7 +735,7 @@
         title: "No scenes detected yet.",
         detail: "Run detection or the full pipeline to build the scene list.",
         ctaLabel: "Run the pipeline",
-        ctaHandler: () => goToTab("pipeline"),
+        ctaHandler: focusPipelineActions,
       });
       els.sceneNote.textContent = "No scenes detected in this screenplay.";
     } else {
@@ -1158,7 +1245,7 @@
         title: "No scenes detected yet.",
         detail: "Run the pipeline first, then return here to generate coverage.",
         ctaLabel: "Run the pipeline",
-        ctaHandler: () => goToTab("pipeline"),
+        ctaHandler: focusPipelineActions,
       });
       refreshActionStates();
       return;
@@ -1484,7 +1571,7 @@
         title: "No scenes detected yet.",
         detail: "Scene-specific overrides appear after the pipeline creates a scene list.",
         ctaLabel: "Run the pipeline",
-        ctaHandler: () => goToTab("pipeline"),
+        ctaHandler: focusPipelineActions,
       });
       refreshActionStates();
       return;
@@ -2319,7 +2406,7 @@
       const created = [...state.projects].reverse().find((project) => project.name === name);
       if (created) {
         await selectProject(created.id);
-        goToTab("pipeline");
+        goToTab("script");
       }
       endTask(true, "Project created", undefined, taskId);
     } catch (error) {
@@ -2433,10 +2520,10 @@
     }
   }
 
-  function goToTab(name) {
-    const target = name || "pipeline";
+  function goToTab(name, options = {}) {
+    const target = STAGES.includes(name) ? name : "script";
     state.activeTab = target;
-    for (const tab of $$(".tab")) {
+    for (const tab of $$(".stage")) {
       const active = tab.dataset.tab === target;
       tab.classList.toggle("is-active", active);
       tab.setAttribute("aria-selected", String(active));
@@ -2448,7 +2535,14 @@
       panel.hidden = !active;
       panel.setAttribute("aria-hidden", String(!active));
     }
-    if (target === "pipeline") {
+    if (options.syncHash !== false) {
+      const hash = `#/${target}`;
+      if (window.location.hash !== hash) {
+        if (options.replace) window.history.replaceState(null, "", hash);
+        else window.location.hash = hash;
+      }
+    }
+    if (target === "script") {
       renderScreenplayMeta();
     } else if (target === "scenes") {
       renderScenes();
@@ -2494,20 +2588,19 @@
       }
       state.shotsLoadedFor = screenplayId;
       updateTask(100, "Shots loaded.", taskId);
-      renderShotScenes();
       endTask(true, "Shots loaded", undefined, taskId);
     } catch (error) {
       firstError = error instanceof Error ? error.message : String(error);
       if (sameId(state.selectedScreenplayId, screenplayId)) {
-        renderShotScenes();
         failTask(error, taskId);
       } else {
         endTask(true, "Screenplay selection changed", undefined, taskId);
       }
     } finally {
       state.shotsLoading = false;
-      if (firstError && sameId(state.selectedScreenplayId, screenplayId)) {
-        els.shotEmpty.hidden = false;
+      if (sameId(state.selectedScreenplayId, screenplayId)) {
+        renderShotScenes();
+        if (firstError) els.shotEmpty.hidden = false;
       }
       refreshActionStates();
     }
@@ -2541,9 +2634,33 @@
     const file = els.screenplayFile.files[0];
     if (els.filePicker) els.filePicker.textContent = file ? file.name : "Choose screenplay…";
   });
-  for (const tab of $$(".tab")) {
+  for (const tab of $$(".stage")) {
     tab.addEventListener("click", () => goToTab(tab.dataset.tab));
   }
+  els.stageRail?.addEventListener("keydown", (event) => {
+    if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
+    const stages = $$(".stage");
+    const current = stages.indexOf(document.activeElement);
+    if (current === -1) return;
+    event.preventDefault();
+    let next = current;
+    if (event.key === "ArrowRight") next = (current + 1) % stages.length;
+    if (event.key === "ArrowLeft") next = (current - 1 + stages.length) % stages.length;
+    if (event.key === "Home") next = 0;
+    if (event.key === "End") next = stages.length - 1;
+    stages[next].focus();
+    goToTab(stages[next].dataset.tab);
+  });
+  els.activityToggle?.addEventListener("click", () => setActivityDrawer(!state.activityDrawerOpen));
+  els.activityClose?.addEventListener("click", () => setActivityDrawer(false));
+  els.activityScrim?.addEventListener("click", () => setActivityDrawer(false));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && state.activityDrawerOpen) setActivityDrawer(false);
+  });
+  window.addEventListener("hashchange", () => {
+    const target = stageFromHash() || "script";
+    if (target !== state.activeTab) goToTab(target, { syncHash: false });
+  });
   els.settingsToggle.addEventListener("click", () => {
     const open = els.settingsPanel.hidden;
     els.settingsPanel.hidden = !open;
@@ -2565,6 +2682,7 @@
   renderShotScenes();
   renderSceneConstraints();
   refreshActionStates();
+  goToTab(stageFromHash() || "script", { replace: true });
   void loadProjects();
   void loadHealth();
 })();
