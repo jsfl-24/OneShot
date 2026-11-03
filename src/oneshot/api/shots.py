@@ -1,5 +1,7 @@
 """Shot API routes."""
 
+from typing import Literal
+
 import httpx
 from fastapi import APIRouter, HTTPException
 
@@ -26,7 +28,7 @@ router = APIRouter(prefix="/shots", tags=["shots"])
 async def generate_shots(
     payload: ShotGenerateRequest,
     session: DbSession,
-    provider: str | None = None,
+    provider: Literal["litert"] | None = None,
 ):
     """Generate and persist a validated shot list for one scene."""
     try:

@@ -121,8 +121,8 @@ async def test_generate_shots_forwards_provider(monkeypatch):
         return json.dumps(SHOTS)
 
     monkeypatch.setattr(shot_generator, "generate", fake_generate)
-    await shot_generator.generate_shots(SCENE, CONSTRAINTS, provider="ollama")
-    assert seen["provider"] == "ollama"
+    await shot_generator.generate_shots(SCENE, CONSTRAINTS, provider="litert")
+    assert seen["provider"] == "litert"
 
 
 async def test_generate_shots_rejects_schema_echo_item(monkeypatch):

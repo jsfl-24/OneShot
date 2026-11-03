@@ -1,5 +1,7 @@
 """Scene API routes."""
 
+from typing import Literal
+
 import httpx
 from fastapi import APIRouter, HTTPException
 
@@ -20,7 +22,7 @@ def _to_read(data: dict) -> SceneRead:
 async def analyze_scene(
     scene_id: int,
     session: DbSession,
-    provider: str | None = None,
+    provider: Literal["litert"] | None = None,
 ):
     """Analyze a single scene with the LLM and persist structured data."""
     try:

@@ -391,6 +391,23 @@ async def test_provider_query_param_passed_through(client, monkeypatch):
     monkeypatch.setattr(scene_detector_llm, "generate", fake_generate)
 
     _, upload = _upload(client)
-    response = client.post(f"/screenplays/{upload['id']}/detect-scenes?provider=huggingface")
+    response = client.post(f"/screenplays/{upload['id']}/detect-scenes?provider=litert")
     assert response.status_code == 200
-    assert calls["provider"] == "huggingface"
+    assert calls["provider"] == "litert"
+
+
+async def test_unsupported_provider_query_param_rejected(client, monkeypatch):
+    from oneshot.ai import scene_detector_llm
+
+    calls = {}
+
+    async def fake_generate(prompt, **kwargs):
+        calls.update(kwargs)
+        return json.dumps({"scenes": []})
+
+    monkeypatch.setattr(scene_detector_llm, "generate", fake_generate)
+
+    _, upload = _upload(client)
+    response = client.post(f"/screenplays/{upload['id']}/detect-scenes?provider=huggingface")
+    assert response.status_code == 422
+    assert calls == {}

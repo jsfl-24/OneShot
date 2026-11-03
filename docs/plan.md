@@ -23,10 +23,8 @@ Build a local-first, AI-assisted filmmaking pre-production system that ingests s
 | PDF Extraction               | PyMuPDF                                                                                                                                              |
 | DOCX Extraction              | python-docx                                                                                                                                          |
 | Vector DB                    | Qdrant                                                                                                                                               |
-| LLM (deployment)             | LiteRT local serving —**Gemma 4 E2B** (`litert_llm_service` on :8101)                                                                       |
-| LLM (development)            | LiteRT local serving — Gemma 4 E2B (default`LLM_PROVIDER=litert`; Ollama/Gemma 4 E4B and Gemini API still available)                              |
-| RAG Embeddings (deployment)  | EmbeddingGemma 300M via LiteRT (`embeddinggemma-service` on :8100)                                                                                 |
-| RAG Embeddings (development) | EmbeddingGemma 300M via LiteRT (default`EMBEDDING_PROVIDER=litert`; Ollama `nomic-embed-text` and Gemini `gemini-embedding-2` still available) |
+| LLM serving                  | LiteRT local serving — **Gemma 4 E2B** (`litert_llm_service` on :8101); only inference path                                                     |
+| RAG Embeddings               | EmbeddingGemma 300M via LiteRT (`embeddinggemma-service` on :8100); 768-dim, pinned signature                                                     |
 | Version Control              | Git + GitHub                                                                                                                                         |
 
 ---
@@ -53,7 +51,7 @@ Build a local-first, AI-assisted filmmaking pre-production system that ingests s
 - [X] Configure FastAPI app with lifespan (`main.py`)
 - [X] Define SQLModel persistence models (`db_models.py`): Project, Screenplay, Scene
 - [X] Define Pydantic API schemas (`schemas.py`): request/response models, enums (ShotType, CameraAngle, etc.)
-- [X] Set up configuration via env vars (`config.py`): DB URL, LLM/embedding provider endpoints (LiteRT/Ollama/Gemini/HF), Qdrant URL
+- [X] Set up configuration via env vars (`config.py`): DB URL, LiteRT LLM/embedding endpoints (LiteRT-only since M6.1)
 - [X] Set up SQLite database init (`db.py`)
 - [X] Add `/health` endpoint
 - [X] Add project CRUD API (`/projects`): create, list, get, delete (cascade)
@@ -198,29 +196,56 @@ Full CRUD on shots with validation and status management (draft/approved).
 
 ## Phase 6: Cinematic Knowledge / RAG
 
-**Status:** NOT STARTED
+**Status:** IN PROGRESS — M6.1 done (awaiting review); M6.2–M6.5 pending
 
 ### Goals
 
-Enhance shot quality with cinematic knowledge retrieval. **RAG is mandatory** and must be integrated into the shot-generation pipeline. Implementation stays replaceable, but the pipeline is only complete with RAG enabled.
+Enhance shot quality with cinematic knowledge retrieval. **RAG is mandatory** and must be integrated into the shot-generation pipeline, with **no non-RAG fallback path**. Implementation stays replaceable, but the pipeline is only complete with retrieval enabled.
 
-### Development vs. Deployment (RAG / LLM serving)
+### Decided architecture (2026-11-03)
 
-- **Default (local, privacy-first):** RAG and LLM serving run **fully local through LiteRT** — LLM via `litert_llm_service` (Gemma 4 E2B on `:8101`), embeddings via `embeddinggemma-service` (EmbeddingGemma 300M on `:8100`). No third-party hosted AI — screenplay privacy is preserved.
-- **Alternatives (config-driven):** Ollama (Gemma 4 E4B, `nomic-embed-text`) for fully-local dev without the `.litertlm` runtime, or online providers (Gemini API via `google-genai`, Hugging Face Inference Providers router) as a development-time convenience. Provider choice does not change application or RAG code paths.
-- The provider must be selected through configuration (`LLM_PROVIDER`, embeddings config) and must not change application or RAG code paths.
+- **Inference:** LiteRT only. LLM = Gemma 4 E2B (`litert_llm_service`, :8101). Embeddings = EmbeddingGemma 300M (`embeddinggemma-service`, :8100), 768-dim. Ollama, Gemini, Hugging Face and Nomic paths removed; no new providers.
+- **Pinned embedding identity:** signature `litert/embeddinggemma-300m` + dimension 768. Incompatible vectors are rejected with an explicit re-ingestion error; a model change requires rebuilding the knowledge collection.
+- **Vector store:** Qdrant via `qdrant-client`, **local-file mode by default** (`QDRANT_MODE=local`, `QDRANT_PATH`); HTTP mode (`QDRANT_URL`) optional for future deployment. Retrieval stays behind a thin replaceable interface.
+- **Failure policy:** retrieval errors abort shot generation and surface clearly (502 convention). Never degrade to a non-RAG prompt.
+- **Query construction:** screenplay `genre` + `story_abstract` + scene `narrative_context` + heading/location + relevant constraints (`available_lenses`, allowed movements), bounded to ~200 tokens. Scene `raw_text` is not embedded directly.
+- **Seed corpus:** 80–150 curated cinematic knowledge chunks, reviewed before being treated as production-ready; no generic filler or contradictory rules.
 
-### Tasks
+### Milestones
 
-- [ ] Set up Qdrant client connection (configurable URL)
-- [ ] Design cinematic knowledge schema (shot types, camera techniques, lens characteristics, movement semantics)
-- [ ] Populate Qdrant with reference cinematic knowledge (seed data)
-- [ ] Implement embedding generation — default `embeddinggemma-service` (EmbeddingGemma 300M via LiteRT); Ollama `nomic-embed-text` and Gemini `gemini-embedding-2` as alternatives
-- [ ] Implement LLM serving — default `litert_llm_service` (Gemma 4 E2B via LiteRT); Ollama (Gemma 4 E4B) and online providers as alternatives
-- [ ] Build RAG retrieval layer: given a scene context + desired shot attributes, retrieve relevant cinematic references
-- [ ] Integrate RAG into shot generation prompt (augment with retrieved context)
-- [ ] Shot generation must always use RAG context — no non-RAG fallback path
-- [ ] Add tests for embedding, retrieval, and prompt augmentation
+#### M6.1 — LiteRT standardization + embedding foundation (DONE, awaiting review)
+
+- [X] Remove Gemini/Ollama/Hugging Face paths from `ai/llm.py`, config, `/providers` and route query params
+- [X] Pin embedding signature + dimension; reject incompatible vectors with a re-ingestion error
+- [X] `rag/embeddings.py`: validated, L2-normalized, order-preserving batched embeddings with bounded concurrency
+- [X] Tests for embedding validation, pinning, batch behavior; suite 169 passed, ruff clean
+- [X] Live check: 768-dim vectors, unit norm, ~7.2s per embedding call on the local service
+
+#### M6.2 — Knowledge schema, seed corpus, store, ingest
+
+- [ ] Design cinematic knowledge schema (categories: shot type, camera technique, lens, movement, composition, continuity)
+- [ ] Author 80–150 curated chunks and submit for user review
+- [ ] Qdrant client (local-file default, HTTP optional) behind a replaceable store interface
+- [ ] Idempotent embedding + ingestion of the corpus, guarded by the pinned signature/dimension
+- [ ] Auto-seed empty collection at startup; tests
+
+#### M6.3 — Retrieval layer
+
+- [ ] Query builder per the decided query construction (~200 tokens)
+- [ ] Top-k retrieval with constraint-aware metadata filters (`RETRIEVAL_TOP_K`, default 5)
+- [ ] Tests with deterministic stub vectors + offline golden-set evaluation (precision@k / hit-rate@k)
+
+#### M6.4 — Pipeline integration (strict, no fallback)
+
+- [ ] Retrieve for every scene before shot generation; inject retrieved references into the prompt
+- [ ] Retrieval failure aborts generation with a clear API error (single + SSE batch paths)
+- [ ] Tests for prompt augmentation content and failure paths
+
+#### M6.5 — Evaluation and tuning
+
+- [ ] End-to-end run against `tests/fixtures/sample_screenplay.txt` with real LiteRT services
+- [ ] Measure constraint adherence, validation-warning rate and added latency across top-k values
+- [ ] Record results and finalize this checklist
 
 ---
 
@@ -323,6 +348,6 @@ The backend is ready for frontend when it can:
 - **LLM is replaceable** — the final model is not permanently selected. Keep `ai/llm.py` as the single abstraction point.
 - **QLoRA fine-tuning** is optional and only considered after the baseline pipeline works and has been evaluated.
 - **RAG is mandatory** — cinematic knowledge retrieval must be part of the shot-generation pipeline; the pipeline is not complete without it.
-- **LLM/RAG provider by environment** — **defaults to LiteRT** (fully local, privacy-first): LLM via `litert_llm_service` (Gemma 4 E2B), embeddings via `embeddinggemma-service` (EmbeddingGemma 300M). Ollama (Gemma 4 E4B, `nomic-embed-text`) and Gemini API/Hugging Face remain available alternatives. Provider selection is config-driven only.
+- **LLM/RAG inference** - LiteRT only (fully local, privacy-first): LLM via `litert_llm_service` (Gemma 4 E2B), embeddings via `embeddinggemma-service` (EmbeddingGemma 300M, 768-dim, pinned signature). No alternative model providers; changing the embedding model requires re-ingesting the knowledge collection.
 - **Storyboard failures must not corrupt the shot plan.**
 - **Privacy first** — no external AI/API calls unless the user explicitly configures them.

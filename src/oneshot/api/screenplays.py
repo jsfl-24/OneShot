@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from typing import Annotated
+from typing import Annotated, Literal
 
 import httpx
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -95,7 +95,9 @@ def list_scenes(screenplay_id: int, session: DbSession):
 
 
 @router.post("/{screenplay_id}/detect-scenes", response_model=SceneListResponse)
-async def detect_scenes(screenplay_id: int, session: DbSession, provider: str | None = None):
+async def detect_scenes(
+    screenplay_id: int, session: DbSession, provider: Literal["litert"] | None = None
+):
     """Run LLM scene detection and merge with regex-detected scenes."""
     try:
         scenes = await scene_service.detect_scenes_llm_and_merge(
@@ -109,7 +111,9 @@ async def detect_scenes(screenplay_id: int, session: DbSession, provider: str | 
 
 
 @router.post("/{screenplay_id}/analyze")
-async def analyze_screenplay(screenplay_id: int, session: DbSession, provider: str | None = None):
+async def analyze_screenplay(
+    screenplay_id: int, session: DbSession, provider: Literal["litert"] | None = None
+):
     """Analyze the full screenplay and persist film metadata (one-liner, genre, abstract, characters)."""
     try:
         screenplay = await screenplay_service.analyze_screenplay(
@@ -126,7 +130,7 @@ async def analyze_screenplay(screenplay_id: int, session: DbSession, provider: s
 async def full_pipeline_stream(
     screenplay_id: int,
     session: DbSession,
-    provider: str | None = None,
+    provider: Literal["litert"] | None = None,
     generate_shots: bool = False,
 ):
     """Run the full pipeline and stream progress via Server-Sent Events."""
@@ -185,7 +189,7 @@ async def full_pipeline_stream(
 async def full_pipeline(
     screenplay_id: int,
     session: DbSession,
-    provider: str | None = None,
+    provider: Literal["litert"] | None = None,
     generate_shots: bool = False,
 ):
     """LLM-detect scenes, analyze all scenes, and extract film metadata.
@@ -211,7 +215,7 @@ async def generate_shots_for_screenplay(
     screenplay_id: int,
     session: DbSession,
     payload: ShotBatchGenerateRequest | None = None,
-    provider: str | None = None,
+    provider: Literal["litert"] | None = None,
 ):
     """Generate (or regenerate) shot plans for every scene in a screenplay."""
     if screenplay_service.get_screenplay(screenplay_id, session) is None:
@@ -237,7 +241,7 @@ async def generate_shots_for_screenplay_stream(
     screenplay_id: int,
     session: DbSession,
     payload: ShotBatchGenerateRequest | None = None,
-    provider: str | None = None,
+    provider: Literal["litert"] | None = None,
 ):
     """Batch-generate shot plans for every scene, streaming progress as SSE."""
     if screenplay_service.get_screenplay(screenplay_id, session) is None:

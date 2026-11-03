@@ -1,8 +1,8 @@
 # OneShot — Development Status
 
-> Last updated: 2026-10-30
-> Current phase: **Phase 5 — Shot Editing and Validation (DONE)**
-> Next phase: **Phase 6 — Cinematic Knowledge / RAG**
+> Last updated: 2026-11-03
+> Current phase: **Phase 6 - Cinematic Knowledge / RAG — M6.1 DONE (awaiting review)**
+> Next: **M6.2 - knowledge schema, seed corpus, Qdrant store, ingest**
 
 This file is a temporary, living log of project development status. It is
 updated after each phase milestone and whenever a significant issue or
@@ -20,7 +20,7 @@ we actually stand and what went wrong along the way.
 | 3 | Structured Scene Understanding | DONE | LLM detection + typo tolerance, validated analysis, full pipeline, UI buttons, migration, tests |
 | 4 | Scene to Shot Segmentation | DONE | Shot + ProductionConstraints models, generator, validation, continuity, constraint merge, endpoints, pipeline hook, tests |
 | 5 | Shot Editing and Validation | DONE | PATCH/DELETE/reorder/approve, draft renumbering, continuity rebuild, 22 new tests |
-| 6 | Cinematic Knowledge / RAG | NOT STARTED | Mandatory, uses online/local provider |
+| 6 | Cinematic Knowledge / RAG | IN PROGRESS | M6.1 done: LiteRT-only inference, pinned 768-dim embeddings; Qdrant/retrieval next |
 | 7 | Storyboard Generation | NOT STARTED | — |
 | 8 | Frontend | NOT STARTED | — |
 
@@ -134,6 +134,28 @@ Implemented:
   constraint conflict (409), approved protection, reorder/continuity, and the
   generate → edit → delete → reorder → approve → retrieve workflow
 
+### Phase 6 — Cinematic Knowledge / RAG (IN PROGRESS)
+
+M6.1 — LiteRT standardization + embedding foundation (DONE, awaiting review):
+
+- `ai/llm.py`, `config.py`, `/providers`, and route query params are LiteRT-only.
+  Gemini/Ollama/Hugging Face/Nomic settings and implementations removed;
+  `.env.example` updated. Only Gemma 4 E2B (`:8101`) + EmbeddingGemma 300M
+  (`:8100`) remain.
+- Embeddings pinned: signature `litert/embeddinggemma-300m`, dimension 768.
+  `rag/embeddings.py` validates payloads, L2-normalizes, batches in order with
+  bounded concurrency, and raises `EmbeddingModelError` (explicit re-ingestion
+  required) on any identity/dimension mismatch.
+- Verified live against the local services: 768-dim unit-norm vectors, first
+  embedding call 7.2s, 2-item batch 13.7s, LLM reply 4.0s.
+- Tests: **169 passed**, 2 pre-existing deprecation warnings, ruff clean
+  (new `tests/test_rag_embeddings.py`; provider tests pruned/updated).
+- Known constraint: local embedding latency (~7s/call) dominates corpus
+  ingestion and adds latency per retrieval query; tracked for M6.2/M6.5.
+
+M6.2–M6.5: see `docs/plan.md` Phase 6 milestones (Qdrant store, reviewed seed
+corpus, retrieval, strict pipeline integration, evaluation).
+
 ---
 ## Issues & Decisions Log
 
@@ -171,6 +193,7 @@ Implemented:
 | 2026-09-25 | 4 | ai | Live shot generation failed `Shot 1 failed validation: shot_type Field required` even after timeout fix | The model reliably emits `"type"` instead of `"shot_type"` (all other keys match). Added a minimal key-aliasing pass before `AIShotData.model_validate` (type→shot_type only); value validation stays strict (genuine enum/value errors still fail). Verified live end-to-end on dev DB scene 5: analyze 17.9s → generate 93.6s → 4 shots persisted with `[]` warnings. Suite 131 passed, ruff clean. |
 | 2026-09-25 | 4 | feature | User: human-friendly shot grammar; establishing shot when location changes (incl. first scene); emotional Close-Up; Extreme Close-Up for character intro/tension; constraints next to shots; ask constraints before generation with Skip | **Prompt** (`prompts.py`): plain-English language-style block + cinematography rules (establishing / emotional Close-Up / ECU intro ≤2 per scene) driven by a `context` object. **Service** (`shot_service.build_scene_context`): injects `first_scene`, `location_changed` (normalized `Scene.location` vs previous scene), `new_characters` as JSON into `{scene_json}`; covers single + batch (batch loops this path). **UI**: native `<dialog id="constraints-dialog">` shown before Generate (per-scene + batch) with **Save & generate / Skip / Cancel**; prefilled from effective-constraint GETs with per-field Override state = applied iff differs from project defaults; Save persists scene overrides (per-scene) or project defaults (batch). Inline `<details class="scene-inline-constraints">` panel per scene card in Shots tab. **Robustness**: `{"type":"array","items":[...]}` envelope unwrapped before validation. Live-verified via Ollama (LiteRT services were down): first shot `Wide` establishing ✓, plain-English action ✓, emotional `Close-Up` ✓, 4 shots persisted, `[]` warnings (ECU-intro rule present but model-dependent — skipped in that particular run). Suite 140 passed, ruff clean. |
 | 2026-09-25 | 4 | ai | Shot 1 failed validation with `7 validation errors for AIShotData`, `shot_type` input `'array'` — LiteRT/Gemma 4 E2B echoed the JSON Schema instead of shots | LiteRT's `response_format=json_object` is ignored by `litert-llm-service` (no schema-constrained decoding), so the model occasionally returns the schema inside the array. The unconditional `type→shot_type` alias then rewrote `{"type":"array","items":…}` into `{"shot_type":"array",…}`, masking the real problem as enum/missing-field errors. Fixed in `ai/shot_generator.py`: explicit schema-echo detection (`_is_schema_echo`, keys ⊆ JSON-Schema keys + `items`/`properties`) fails fast with a descriptive error; alias now applies only when the `type` value is a legitimate `ShotType`; raw LLM response logged at DEBUG only on validation failure. `prompts.py`: explicit "never echo the schema" instruction. Tests: +3 (echo rejection, mixed echo+valid → whole response fails, `type` alias still works). Suite 143 passed, ruff clean. |
+| 2026-11-03 | 6 | ai/config | Multiple provider paths (Ollama/Gemini/HF/Nomic) contradicted the single-runtime decision; embedding client existed but nothing consumed it | User decision: **LiteRT-only** inference. Removed all alternate provider implementations/settings/endpoints; pinned `litert/embeddinggemma-300m` at **768 dims** with reject-and-re-ingest semantics; added validated, L2-normalized batched embeddings (`rag/embeddings.py`). Suite **169 passed**, ruff clean. M6.2 (Qdrant, corpus, ingest) pending review. |
 
 ---
 
@@ -178,7 +201,7 @@ Implemented:
 
 | Blocker | Blocks | Notes |
 |---------|--------|-------|
-| Qdrant not required yet | Phase 6 | RAG work needs Qdrant running locally or a test mock |
+| Qdrant not required yet | Phase 6 (M6.2+) | Local-file mode via `qdrant-client` is the default; no server needed. HTTP mode optional for deployment. |
 
 ---
 
@@ -187,6 +210,7 @@ Implemented:
 - Environment: `uv` — symlink `.venv` via `uv sync` (deps from `pyproject.toml`); activate with `uv run`
 - Test command: `uv run pytest`
 - Lint command: `uv run ruff check src tests`
-- Latest run: 163 passed, 2 warnings (deprecation), ruff clean (2026-10-30)
-- Provider: default **LiteRT (local)** — Gemma 4 E2B (`gemma-4-E2B-it`) via `litert_llm_service` on `:8101`, EmbeddingGemma 300M via `embeddinggemma-service` on `:8100`.
+- Latest run: **169 passed**, 2 warnings (deprecation), ruff clean (2026-11-03)
+- Provider: **LiteRT only** — Gemma 4 E2B (`gemma-4-E2B-it`) via `litert_llm_service` on `:8101`, EmbeddingGemma 300M (`embeddinggemma-300m`, 768-dim, pinned) via `embeddinggemma-service` on `:8100`. No alternative providers.
+- M6.1 live check (2026-11-03): `rag.embed_text` returned 768-dim unit-norm vectors (7.2s first call, 13.7s for a 2-item batch); `llm.generate` replied in 4.0s.
 - Verified end-to-end with live LiteRT services (2026-09-21): `/providers/ping` (LLM + embeddings), project → screenplay upload → full pipeline → 4/4 scenes analyzed → screenplay metadata extracted.
