@@ -196,7 +196,7 @@ Full CRUD on shots with validation and status management (draft/approved).
 
 ## Phase 6: Cinematic Knowledge / RAG
 
-**Status:** IN PROGRESS — M6.1 and M6.2 done (awaiting review); M6.3–M6.5 pending
+**Status:** IN PROGRESS — M6.1 and M6.2 done and approved; M6.3–M6.5 pending
 
 ### Goals
 
@@ -213,7 +213,7 @@ Enhance shot quality with cinematic knowledge retrieval. **RAG is mandatory** an
 
 ### Milestones
 
-#### M6.1 — LiteRT standardization + embedding foundation (DONE, awaiting review)
+#### M6.1 — LiteRT standardization + embedding foundation (DONE, approved)
 
 - [X] Remove Gemini/Ollama/Hugging Face paths from `ai/llm.py`, config, `/providers` and route query params
 - [X] Pin embedding signature + dimension; reject incompatible vectors with a re-ingestion error
@@ -221,7 +221,7 @@ Enhance shot quality with cinematic knowledge retrieval. **RAG is mandatory** an
 - [X] Tests for embedding validation, pinning, batch behavior; suite 169 passed, ruff clean
 - [X] Live check: 768-dim vectors, unit norm, ~7.2s per embedding call on the local service
 
-#### M6.2 — Knowledge schema, seed corpus, store, ingest (DONE, awaiting review)
+#### M6.2 — Knowledge schema, seed corpus, store, ingest (DONE, approved)
 
 - [X] Design cinematic knowledge schema (categories: shot type, camera technique, lens, movement, composition, continuity)
 - [X] Author 80–150 curated chunks and submit for user review — 101 chunks, corpus sha `b3e44066…`

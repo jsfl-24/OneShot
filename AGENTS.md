@@ -2,13 +2,28 @@
 
 ## Project status
 
-- Phases 1–4 (backend foundation, document/scene extraction, structured scene
-  analysis, shot segmentation) are **implemented and verified**: FastAPI +
-  SQLite/SQLModel backend under `src/oneshot/`, Alembic migrations, 140 passing
-  tests. See `docs/STATUS.md` for the phase-by-phase log.
-- **Phase 5 — Shot Editing and Validation** is next.
-- Phase 6 (Cinematic Knowledge / RAG — mandatory in the shot pipeline) and
-  Phase 7 (Storyboard Generation) remain pending.
+- Phases 1–5 (backend foundation, document/scene extraction, structured scene
+  analysis, shot segmentation, shot editing and validation) are **implemented,
+  verified and committed**: FastAPI + SQLite/SQLModel backend under
+  `src/oneshot/`, Alembic migrations. See `docs/STATUS.md` for the
+  phase-by-phase log.
+- Phase 6 — Cinematic Knowledge / RAG (mandatory in the shot pipeline):
+  - **M6.1 — done, approved, committed:** LiteRT-only inference; embeddings
+    pinned to `litert/embeddinggemma-300m` at **768 dimensions** with
+    reject-and-re-ingest semantics (`rag/embeddings.py`).
+  - **M6.2 — done, approved, committed:** 101-chunk curated corpus in
+    `rag/seed/`, validated schema (`rag/knowledge.py`), Qdrant store and
+    idempotent ingestion (`rag/store.py`, `rag/ingest.py`), startup auto-seed.
+  - **M6.3 — Retrieval layer is next.** M6.4 (strict pipeline integration) and
+    M6.5 (evaluation and tuning) remain pending.
+- **LiteRT-only architecture** (no third-party hosted AI):
+  - LLM: Gemma 4 E2B via `litert_llm_service` on `:8101`.
+  - Embeddings: EmbeddingGemma 300M via `embeddinggemma-service` on `:8100`,
+    768-dimensional, identity pinned.
+  - Vector store: **Qdrant via `qdrant-client`** — local-file mode by default
+    (`data/qdrant`, one process at a time), optional HTTP mode for deployment.
+- `/ui` is a **temporary development/testing harness** only; the production
+  frontend is deferred to Phase 8.
 - `docs/ONESHOT.md` is the authoritative product spec and the source of truth for all work. Read it before writing code; it defines the tech stack (Python, FastAPI, Pydantic, SQLite, Qdrant, LiteRT/Gemma), module layout, and API surface. `docs/plan.md` is the task checklist tracking progress.
 - Python environment is managed with **uv** (not mamba/conda). Create/use the venv via `uv sync` / `uv run`; install packages as `uv add`, run all commands through `uv run`.
 
