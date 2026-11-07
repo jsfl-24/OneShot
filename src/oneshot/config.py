@@ -38,5 +38,19 @@ class Settings:
     EMBEDDING_SIGNATURE: str = f"litert/{LITERT_EMBEDDING_MODEL}"
     EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "768"))
 
+    # RAG knowledge store (Phase 6) — Qdrant, local-file mode by default.
+    RAG_QDRANT_MODE: str = os.getenv("RAG_QDRANT_MODE", "local")  # "local" | "http"
+    RAG_QDRANT_PATH: Path = Path(os.getenv("RAG_QDRANT_PATH", "data/qdrant"))
+    RAG_QDRANT_URL: str = os.getenv("RAG_QDRANT_URL", "http://127.0.0.1:6333")
+    RAG_COLLECTION: str = os.getenv("RAG_COLLECTION", "oneshot_knowledge")
+    # Embedding calls during corpus ingestion; the local LiteRT service serializes requests.
+    RAG_EMBED_CONCURRENCY: int = int(os.getenv("RAG_EMBED_CONCURRENCY", "4"))
+    # Seed the knowledge collection at startup when it is empty.
+    RAG_AUTOSEED: bool = os.getenv("RAG_AUTOSEED", "true").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+    }
+
 
 settings = Settings()

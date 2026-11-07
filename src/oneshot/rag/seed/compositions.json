@@ -1,0 +1,125 @@
+{
+  "category": "composition",
+  "chunks": [
+    {
+      "title": "Rule of Thirds",
+      "body": "Place the subject or a key horizon on one of the thirds rather than dead center, leaving two-thirds of the frame for context or direction of travel. It is a starting point, not a law, and works best when the off-center placement reflects where the subject is looking or moving.",
+      "tags": ["thirds", "balance"],
+      "attributes": {"angle": "neutral", "subject_position": "off_center"}
+    },
+    {
+      "title": "Centered Symmetry",
+      "body": "Center the subject and build matching shapes on both sides so the frame feels formal, controlled, or theatrical. Use it for authority, ritual, or unease, and correct any accidental asymmetry because the eye will find it.",
+      "tags": ["symmetry", "formalism"],
+      "attributes": {"angle": "neutral", "subject_position": "center"}
+    },
+    {
+      "title": "Headroom",
+      "body": "Leave a small, consistent margin above the head, tighter on wide shots and slightly looser on close-ups. Too much headroom makes the subject look small, while too little crops the skull and feels like an accident.",
+      "tags": ["headroom", "vertical"],
+      "attributes": {"angle": "neutral", "subject_position": "center"}
+    },
+    {
+      "title": "Lead Room",
+      "body": "Give a moving subject space ahead of their direction of travel so the frame does not feel blocked. The faster the movement, the more lead room is needed, and the space should open toward the next cut.",
+      "tags": ["lead_room", "motion"],
+      "attributes": {"angle": "neutral", "subject_position": "off_center"}
+    },
+    {
+      "title": "Looking Room",
+      "body": "When a subject looks off-frame, place them on the opposite side so the gaze has space to land. Less looking room creates tension or the sense of being trapped, while more creates calm and contemplation.",
+      "tags": ["looking_room", "gaze"],
+      "attributes": {"angle": "neutral", "subject_position": "off_center"}
+    },
+    {
+      "title": "Frame Within a Frame",
+      "body": "Use a doorway, window, mirror, or arch to box the subject inside the frame, adding depth and implying confinement or protection. Align the inner frame deliberately and avoid competing edges.",
+      "tags": ["frame_within_frame", "depth"],
+      "attributes": {"angle": "neutral", "subject_position": "center"}
+    },
+    {
+      "title": "Depth Layering",
+      "body": "Build foreground, midground, and background layers so the image has parallax and the eye can travel. Place a dark foreground element at the edge, the subject in the midground, and detail in the background.",
+      "tags": ["depth", "layers"],
+      "attributes": {"angle": "neutral", "subject_position": "multiple"}
+    },
+    {
+      "title": "Negative Space",
+      "body": "Leave large areas of empty frame around a small subject to express isolation, scale, or waiting. The empty area must be composed, not accidental, and should contrast in tone or texture with the subject.",
+      "tags": ["negative_space", "isolation"],
+      "attributes": {"angle": "neutral", "subject_position": "off_center"}
+    },
+    {
+      "title": "Leading Lines",
+      "body": "Use roads, corridors, rails, or architectural edges to pull the eye toward the subject or vanishing point. Lines that converge on the face reinforce attention, while lines that exit the frame pull attention away.",
+      "tags": ["leading_lines", "perspective"],
+      "attributes": {"angle": "neutral", "subject_position": "off_center"}
+    },
+    {
+      "title": "High Angle",
+      "body": "Place the camera above the subject looking down to make them appear smaller, weaker, or observed. It also reveals floor patterns and group geometry, so use it when vulnerability or surveillance is the point.",
+      "tags": ["high_angle", "power"],
+      "attributes": {"angle": "high", "subject_position": "center"}
+    },
+    {
+      "title": "Low Angle",
+      "body": "Place the camera below eye level looking up to give the subject height, dominance, or threat. Watch the background, because a low angle often brings sky, ceiling, or lights into frame.",
+      "tags": ["low_angle", "power"],
+      "attributes": {"angle": "low", "subject_position": "center"}
+    },
+    {
+      "title": "Eye Level",
+      "body": "Set the lens at the subject's eye height so the audience meets them as an equal. It is the neutral default for dialogue and testimony, and small deviations read as deliberate.",
+      "tags": ["eye_level", "neutral"],
+      "attributes": {"angle": "neutral", "subject_position": "center"}
+    },
+    {
+      "title": "Dutch Angle",
+      "body": "Tilt the horizon off level to create unease, instability, or momentum. Use a consistent tilt within a scene and motivate it with the story, because an unexplained Dutch angle reads as a mistake.",
+      "tags": ["dutch", "unease"],
+      "attributes": {"angle": "dutch", "subject_position": "off_center"}
+    },
+    {
+      "title": "Top-Down Overhead",
+      "body": "Shoot straight down so people and objects become graphic shapes on a plane, which is ideal for patterns, tactics, and isolation. Light the floor evenly and remove shadows that flatten the subject into the background.",
+      "tags": ["overhead", "graphic"],
+      "attributes": {"angle": "overhead", "subject_position": "center"}
+    },
+    {
+      "title": "Worm's-Eye View",
+      "body": "Put the camera on or near the ground looking steeply up so the subject towers and the environment converges overhead. It exaggerates power and can turn ceilings, trees, or skyscrapers into the dominant shape.",
+      "tags": ["worms_eye", "scale"],
+      "attributes": {"angle": "low", "subject_position": "center"}
+    },
+    {
+      "title": "Tight Framing",
+      "body": "Crop close to the subject's edges so the frame feels compressed and the environment is mostly excluded. It builds claustrophobia, focus, or pressure and works best when the story needs confinement.",
+      "tags": ["tight", "claustrophobia"],
+      "attributes": {"angle": "neutral", "subject_position": "center"}
+    },
+    {
+      "title": "Loose Framing",
+      "body": "Leave generous space around the subject so the environment and their smallness or freedom read clearly. It suits isolation, scale, and scenes where the setting is part of the drama.",
+      "tags": ["loose", "isolation"],
+      "attributes": {"angle": "neutral", "subject_position": "off_center"}
+    },
+    {
+      "title": "Obstructed View",
+      "body": "Place a foreground object partly across the subject so the audience feels like a hidden observer or shares a restricted viewpoint. Keep the obstruction intentional and do not cover the eyes unless the loss of information is the point.",
+      "tags": ["obstruction", "subjectivity"],
+      "attributes": {"angle": "neutral", "subject_position": "foreground"}
+    },
+    {
+      "title": "Profile Staging",
+      "body": "Turn the subject ninety degrees to the lens so the silhouette of the face and body reads as a shape. It emphasizes direction, purpose, and distance, and is stronger for exits and confrontations than for intimacy.",
+      "tags": ["profile", "silhouette"],
+      "attributes": {"angle": "profile", "subject_position": "off_center"}
+    },
+    {
+      "title": "Horizon Placement",
+      "body": "Decide whether the horizon sits high or low in frame, because it changes the balance of earth and sky and the subject's relationship to the world. Keep it level unless a Dutch angle is intended, and avoid cutting through the subject's head.",
+      "tags": ["horizon", "balance"],
+      "attributes": {"angle": "neutral", "subject_position": "center"}
+    }
+  ]
+}

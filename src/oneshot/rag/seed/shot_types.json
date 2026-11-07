@@ -1,0 +1,137 @@
+{
+  "category": "shot_type",
+  "chunks": [
+    {
+      "title": "Extreme Wide Shot",
+      "body": "Place a lone figure small in a vast environment so scale, distance, and exposure to the world dominate. Use it to open a sequence or to isolate a character emotionally, letting the landscape carry the meaning rather than the face.",
+      "tags": ["framing", "scale"],
+      "attributes": {"framing_size": "extreme_wide", "subjects": "0-1", "emotional_effect": "insignificance"}
+    },
+    {
+      "title": "Establishing Shot",
+      "body": "Show the geography, time of day, and social world of a scene before cutting closer, using architecture, signage, and traffic to fix location. Shoot wide enough that the audience can orient without a caption, and keep the camera still so the information reads.",
+      "tags": ["establishing", "geography"],
+      "attributes": {"framing_size": "extreme_wide", "subjects": "0-3", "emotional_effect": "orientation"}
+    },
+    {
+      "title": "Wide Shot",
+      "body": "Frame the full body with generous space around it so gesture, costume, and relationship to the set all read at once. Choose a wide when blocking and spatial relationships matter more than facial expression.",
+      "tags": ["framing", "blocking"],
+      "attributes": {"framing_size": "wide", "subjects": "1-3", "emotional_effect": "context"}
+    },
+    {
+      "title": "Full Shot",
+      "body": "Cut the frame at the feet and just above the head so the entire body stays visible and movement reads clearly. This is the standard size for dance, fight, and physical comedy because it preserves the performer's full line.",
+      "tags": ["framing", "physicality"],
+      "attributes": {"framing_size": "full", "subjects": "1-2", "emotional_effect": "physicality"}
+    },
+    {
+      "title": "Medium Shot",
+      "body": "Frame from roughly the waist up, keeping hands and torso in view for gesture-driven dialogue. It is the conversational default because it balances face, body language, and surrounding space.",
+      "tags": ["dialogue", "gesture"],
+      "attributes": {"framing_size": "medium", "subjects": "1-2", "emotional_effect": "neutrality"}
+    },
+    {
+      "title": "Medium Close-Up",
+      "body": "Frame from the chest up so the face fills most of the height while the shoulders anchor the composition. Use it for dialogue where expression matters but the body still needs to register.",
+      "tags": ["dialogue", "intimacy"],
+      "attributes": {"framing_size": "medium_close", "subjects": "1", "emotional_effect": "intimacy"}
+    },
+    {
+      "title": "Close-Up",
+      "body": "Fill the frame with the face, cropping at the shoulders and top of the head, so micro-expressions carry the beat. Reserve it for emotional turns and reactions, because constant close-ups flatten their impact.",
+      "tags": ["emotion", "face"],
+      "attributes": {"framing_size": "close", "subjects": "1", "emotional_effect": "intensity"}
+    },
+    {
+      "title": "Extreme Close-Up",
+      "body": "Isolate a single feature such as an eye, mouth, or fingertip so texture and micro-movement become the subject. Use it sparingly for shock, obsession, or a detail the plot hinges on.",
+      "tags": ["detail", "texture"],
+      "attributes": {"framing_size": "extreme_close", "subjects": "1", "emotional_effect": "intensity"}
+    },
+    {
+      "title": "Insert Shot",
+      "body": "Cut to a tight, deliberate view of an object or action that carries story information, such as a letter, a weapon, or a screen. Shoot it from the scene's established axis and match the lighting so it cuts in cleanly.",
+      "tags": ["insert", "story"],
+      "attributes": {"framing_size": "insert", "subjects": "1", "emotional_effect": "information"}
+    },
+    {
+      "title": "Two-Shot",
+      "body": "Hold two people in the same frame so their distance, height, and body orientation describe the relationship. Keep both faces readable by angling them toward camera rather than staging them flat to each other.",
+      "tags": ["relationship", "blocking"],
+      "attributes": {"framing_size": "medium", "subjects": "2", "emotional_effect": "relationship"}
+    },
+    {
+      "title": "Over-the-Shoulder",
+      "body": "Place one subject's shoulder and head in the near foreground, soft and dark, framing the other subject's face. The foreground body anchors the viewer to that character's side of the argument.",
+      "tags": ["dialogue", "alignment"],
+      "attributes": {"framing_size": "medium_close", "subjects": "2", "emotional_effect": "alignment"}
+    },
+    {
+      "title": "Point-of-View Shot",
+      "body": "Put the camera where the character's eyes are and show what they see, including the tilt and height of their posture. Cut to a reaction shot before or after so the audience knows whose perception they are borrowing.",
+      "tags": ["subjectivity", "identification"],
+      "attributes": {"framing_size": "subjective", "subjects": "1", "emotional_effect": "empathy"}
+    },
+    {
+      "title": "Reaction Shot",
+      "body": "Cut to a listener's face as they absorb what was just said or done, holding long enough for the response to land. The reaction often carries the scene's meaning more than the line that provoked it.",
+      "tags": ["reaction", "emotion"],
+      "attributes": {"framing_size": "medium_close", "subjects": "1", "emotional_effect": "emotion"}
+    },
+    {
+      "title": "Master Shot",
+      "body": "Cover the whole scene in one continuous wide from a position that keeps every principal in frame. It is the editorial safety net that lets closer coverage cut together without breaking geography.",
+      "tags": ["coverage", "geography"],
+      "attributes": {"framing_size": "wide", "subjects": "2-6", "emotional_effect": "geography"}
+    },
+    {
+      "title": "Cowboy Shot",
+      "body": "Frame from mid-thigh up, historically chosen so a holstered gun stayed visible below the hands. Today it gives a standing figure stature and room for gesture without losing the face.",
+      "tags": ["framing", "stature"],
+      "attributes": {"framing_size": "medium_full", "subjects": "1-2", "emotional_effect": "authority"}
+    },
+    {
+      "title": "Single",
+      "body": "Frame one performer alone, with the other scene partner implied off-screen or reduced to a foreground edge. A clean single keeps the audience inside one character's experience.",
+      "tags": ["isolation", "performance"],
+      "attributes": {"framing_size": "medium", "subjects": "1", "emotional_effect": "isolation"}
+    },
+    {
+      "title": "Aerial Wide Shot",
+      "body": "Shoot from a drone or aircraft high enough to read terrain, roads, and settlement patterns as graphic shapes. Confirm local flight permissions, keep the horizon level, and avoid a tilt that the story does not motivate.",
+      "tags": ["aerial", "scale"],
+      "attributes": {"framing_size": "extreme_wide", "subjects": "0-many", "emotional_effect": "scale"}
+    },
+    {
+      "title": "Hand Detail Insert",
+      "body": "Frame hands only, filling the shot with how a character handles an object, such as a tremble, a grip, or a hesitation. Light and focus the hands like a face because the performance is entirely in the fingers.",
+      "tags": ["detail", "performance"],
+      "attributes": {"framing_size": "insert", "subjects": "1", "emotional_effect": "character"}
+    },
+    {
+      "title": "Mirror Shot",
+      "body": "Shoot a character through or into a mirror so the reflection adds a second, often contradictory, view of them. Watch for the camera's own reflection and set the mirror angle before the take.",
+      "tags": ["reflection", "duality"],
+      "attributes": {"framing_size": "medium", "subjects": "1-2", "emotional_effect": "duality"}
+    },
+    {
+      "title": "Group Shot",
+      "body": "Arrange three or more people so every face has a clear sightline to the lens and no one is buried behind another. Group them in depth and vary heights rather than lining them up shoulder to shoulder.",
+      "tags": ["ensemble", "blocking"],
+      "attributes": {"framing_size": "wide", "subjects": "3-plus", "emotional_effect": "community"}
+    },
+    {
+      "title": "Silhouette Shot",
+      "body": "Expose for a bright background so the subject becomes a dark shape with no readable facial detail. Use it to withhold identity, imply threat, or isolate a figure against a doorway, sky, or window.",
+      "tags": ["silhouette", "mystery"],
+      "attributes": {"framing_size": "wide", "subjects": "1-3", "emotional_effect": "mystery"}
+    },
+    {
+      "title": "Back Shot",
+      "body": "Frame a character from behind as they face the space ahead, letting posture and the unseen face carry the emotion. It creates anticipation and is often used on an entrance or a decision to leave.",
+      "tags": ["withholding", "entrance"],
+      "attributes": {"framing_size": "medium", "subjects": "1", "emotional_effect": "withholding"}
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "category": "camera_technique",
+  "chunks": [
+    {
+      "title": "Locked-Off Camera",
+      "body": "Lock the head and do not touch the camera for the duration of the take, so the frame becomes a stable reference for performance and editing. Use it when blocking, composition, or an effects plate must stay repeatable.",
+      "tags": ["static", "repeatability"],
+      "attributes": {"rig": "tripod", "operation": "static"}
+    },
+    {
+      "title": "Pan",
+      "body": "Rotate the camera horizontally on a leveled fluid head, starting and ending on motivated points rather than drifting. Lead the subject slightly and ease in and out so the move reads as intentional.",
+      "tags": ["pan", "fluid_head"],
+      "attributes": {"rig": "fluid_head", "operation": "pan"}
+    },
+    {
+      "title": "Tilt",
+      "body": "Rotate vertically on the head to reveal height, such as a building, a fall, or a face, keeping the horizon level at the endpoints. Tilt slower than you think, because vertical motion reads faster on screen.",
+      "tags": ["tilt", "reveal"],
+      "attributes": {"rig": "fluid_head", "operation": "tilt"}
+    },
+    {
+      "title": "Whip Pan",
+      "body": "Snap the head across the scene fast enough to blur the image, land on the new subject, and settle without overshoot. Use it as an edit point or comic transition, and shoot extra handles at both ends.",
+      "tags": ["transition", "blur"],
+      "attributes": {"rig": "tripod", "operation": "whip_pan"}
+    },
+    {
+      "title": "Handheld Operating",
+      "body": "Support the camera with both hands and a shoulder or chest contact, breathe low, and let small imperfections add urgency without losing the subject. Use a wide lens and a light body, because excessive stabilization kills the effect.",
+      "tags": ["handheld", "urgency"],
+      "attributes": {"rig": "handheld", "operation": "handheld"}
+    },
+    {
+      "title": "Steadicam",
+      "body": "Balance the sled so it hangs neutral, hold the post lightly, and walk with bent knees and a smooth heel-to-toe roll. Rehearse the path and watch for low-frequency bobbing that shows only in playback.",
+      "tags": ["stabilization", "walking"],
+      "attributes": {"rig": "steadicam", "operation": "stabilize"}
+    },
+    {
+      "title": "Gimbal",
+      "body": "Tune the gimbal axes before the take, then drive it with deliberate body movement rather than joystick corrections. Set follow speed low for smooth arcs and higher only when you need to react to actors.",
+      "tags": ["stabilization", "gimbal"],
+      "attributes": {"rig": "gimbal", "operation": "stabilize"}
+    },
+    {
+      "title": "Crane and Jib Operation",
+      "body": "Balance the arm with counterweights, keep the operating head level, and rehearse the arc with the grip team before anyone rides it. Move at a constant speed and plan the start and end frames, because cranes cannot stop on a dime.",
+      "tags": ["crane", "safety"],
+      "attributes": {"rig": "jib", "operation": "boom"}
+    },
+    {
+      "title": "Dolly Track",
+      "body": "Lay track on solid ground, level every joint, and push or pull at a constant speed with the operator isolated from footsteps. Use a dolly when the move must repeat exactly across takes or carry dialogue.",
+      "tags": ["dolly", "repeatability"],
+      "attributes": {"rig": "dolly", "operation": "track"}
+    },
+    {
+      "title": "Rack Focus",
+      "body": "Mark the focus distance for each subject and pull between them during the beat, using a follow-focus wheel for repeatability. A slow rack shifts attention, while a fast rack reads as a reveal or a shock.",
+      "tags": ["focus", "attention"],
+      "attributes": {"rig": "any", "operation": "focus_pull"}
+    },
+    {
+      "title": "Deep Focus",
+      "body": "Stop down and choose a wide lens so foreground, midground, and background all hold acceptable sharpness. Block actors in depth and light the background, because deep focus exposes every part of the set.",
+      "tags": ["focus", "staging"],
+      "attributes": {"rig": "any", "operation": "deep_focus"}
+    },
+    {
+      "title": "Shallow Focus",
+      "body": "Open the iris and use a longer lens so only the plane of interest is sharp, then place the background deliberately as color and shape. Keep the subject's eyes in focus and avoid drifting off the plane during movement.",
+      "tags": ["focus", "bokeh"],
+      "attributes": {"rig": "any", "operation": "shallow_focus"}
+    },
+    {
+      "title": "Optical Zoom",
+      "body": "Change focal length by rotating the zoom ring while the camera stays put, which alters framing without changing perspective. Motorize the zoom for repeatable speed and avoid combining it with a dolly unless the counter-move is intended.",
+      "tags": ["zoom", "framing"],
+      "attributes": {"rig": "tripod", "operation": "zoom"}
+    },
+    {
+      "title": "Snap Zoom",
+      "body": "Crank the zoom ring by hand from wide to long in a fraction of a second, landing on the subject and holding. It reads as a punchline or shock, so shoot several speeds and keep the camera locked off.",
+      "tags": ["zoom", "shock"],
+      "attributes": {"rig": "tripod", "operation": "snap_zoom"}
+    },
+    {
+      "title": "Crash Zoom",
+      "body": "Drive the zoom to its longest end as fast as the lens allows, often on a moving subject, and accept the mechanical jerk as part of the effect. Protect the take with a second locked-off camera, because focus and framing are hard to repeat.",
+      "tags": ["zoom", "safety"],
+      "attributes": {"rig": "tripod", "operation": "crash_zoom"}
+    },
+    {
+      "title": "Long Take",
+      "body": "Design a single unbroken take around actor movement, camera path, and lighting changes, then rehearse the whole chain with stand-ins. Plan hidden reset points and keep the frame alive with new information so length feels purposeful.",
+      "tags": ["oner", "rehearsal"],
+      "attributes": {"rig": "any", "operation": "choreography"}
+    },
+    {
+      "title": "Low-Mode Operating",
+      "body": "Work from a kneeling, seated, or prone position with the camera braced on sandbags, a low hat, or a ground-level tripod. Clear the floor path, protect your knees, and check that the low horizon does not expose unwanted ceiling or sky.",
+      "tags": ["low_mode", "safety"],
+      "attributes": {"rig": "ground", "operation": "low_mode"}
+    },
+    {
+      "title": "High-Mode Operating",
+      "body": "Put the camera on a tall tripod, ladder, or scaffold and operate from a stable platform with a second person handling the head when possible. Secure the rig against wind and never lean out to chase a subject.",
+      "tags": ["high_mode", "safety"],
+      "attributes": {"rig": "height", "operation": "high_mode"}
+    }
+  ]
+}

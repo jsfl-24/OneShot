@@ -1,5 +1,8 @@
 """OneShot FastAPI application."""
 
+import asyncio
+import contextlib
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -7,7 +10,11 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from oneshot.api import constraints, export, projects, providers, scenes, screenplays, shots
+from oneshot.config import settings
 from oneshot.db import init_db
+from oneshot.rag.ingest import seed_knowledge_if_needed
+
+logger = logging.getLogger(__name__)
 
 
 class NoCacheUIMiddleware:
@@ -35,10 +42,47 @@ class NoCacheUIMiddleware:
         await self.app(scope, receive, send_wrapper)
 
 
+async def _rag_autoseed() -> None:
+    """Seed the knowledge collection in the background; never raise."""
+    try:
+        report = await seed_knowledge_if_needed()
+    except Exception:
+        logger.warning(
+            "RAG knowledge auto-seed failed; cinematic retrieval may be empty until "
+            "the corpus is ingested. Rebuild manually with "
+            "`python -m oneshot.rag.ingest --force`.",
+            exc_info=True,
+        )
+        return
+
+    if report is None:
+        logger.debug("RAG knowledge collection already populated; skipping auto-seed")
+        return
+
+    logger.info(
+        "RAG knowledge auto-seed stored %d chunks (%d embedded) in collection %s",
+        report.chunks,
+        report.embedded,
+        report.collection,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    yield
+
+    autoseed_task: asyncio.Task[None] | None = None
+    if settings.RAG_AUTOSEED:
+        autoseed_task = asyncio.create_task(_rag_autoseed(), name="rag-autoseed")
+        app.state.rag_autoseed_task = autoseed_task
+
+    try:
+        yield
+    finally:
+        if autoseed_task is not None and not autoseed_task.done():
+            autoseed_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await autoseed_task
 
 
 app = FastAPI(title="OneShot", version="0.1.0", lifespan=lifespan)

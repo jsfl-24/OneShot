@@ -13,6 +13,13 @@ from oneshot.main import app
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
+@pytest.fixture(autouse=True)
+def _rag_settings_guard(tmp_path, monkeypatch):
+    """Never let tests hit the real knowledge store or run real auto-seeding."""
+    monkeypatch.setattr(settings, "RAG_AUTOSEED", False)
+    monkeypatch.setattr(settings, "RAG_QDRANT_PATH", tmp_path / "qdrant")
+
+
 @pytest.fixture()
 def client(tmp_path):
     db_path = tmp_path / "test.db"

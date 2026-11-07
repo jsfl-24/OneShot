@@ -196,7 +196,7 @@ Full CRUD on shots with validation and status management (draft/approved).
 
 ## Phase 6: Cinematic Knowledge / RAG
 
-**Status:** IN PROGRESS — M6.1 done (awaiting review); M6.2–M6.5 pending
+**Status:** IN PROGRESS — M6.1 and M6.2 done (awaiting review); M6.3–M6.5 pending
 
 ### Goals
 
@@ -221,13 +221,14 @@ Enhance shot quality with cinematic knowledge retrieval. **RAG is mandatory** an
 - [X] Tests for embedding validation, pinning, batch behavior; suite 169 passed, ruff clean
 - [X] Live check: 768-dim vectors, unit norm, ~7.2s per embedding call on the local service
 
-#### M6.2 — Knowledge schema, seed corpus, store, ingest
+#### M6.2 — Knowledge schema, seed corpus, store, ingest (DONE, awaiting review)
 
-- [ ] Design cinematic knowledge schema (categories: shot type, camera technique, lens, movement, composition, continuity)
-- [ ] Author 80–150 curated chunks and submit for user review
-- [ ] Qdrant client (local-file default, HTTP optional) behind a replaceable store interface
-- [ ] Idempotent embedding + ingestion of the corpus, guarded by the pinned signature/dimension
-- [ ] Auto-seed empty collection at startup; tests
+- [X] Design cinematic knowledge schema (categories: shot type, camera technique, lens, movement, composition, continuity)
+- [X] Author 80–150 curated chunks and submit for user review — 101 chunks, corpus sha `b3e44066…`
+- [X] Qdrant client (local-file default, HTTP optional) behind a replaceable store interface
+- [X] Idempotent embedding + ingestion of the corpus, guarded by the pinned signature/dimension
+- [X] Auto-seed empty collection at startup; tests (27 new RAG tests; suite 196 passed, ruff clean)
+- [X] Windows/qdrant-local delete-recreate workaround (gc + folder removal) documented in `STATUS.md`
 
 #### M6.3 — Retrieval layer
 

@@ -10,6 +10,7 @@ venv/
 *.db
 *.sqlite
 uploads/
+data/
 *.qdrant/
 .ruff_cache/
 .pytest_cache/

@@ -1,0 +1,77 @@
+{
+  "category": "continuity",
+  "chunks": [
+    {
+      "title": "180-Degree Rule",
+      "body": "Keep every camera on one side of the line connecting the two subjects so their screen positions stay consistent. Establish the axis in the master and do not cross it without a neutral shot or a motivated move.",
+      "tags": ["axis", "screen_direction"],
+      "attributes": {"concern": "axis"}
+    },
+    {
+      "title": "Crossing the Line",
+      "body": "Crossing the axis flips left and right, which disorients the audience and can read as a mistake. If you must cross, do it on camera, through a neutral frontal shot, or via a cutaway that re-establishes the geography.",
+      "tags": ["axis", "reestablish"],
+      "attributes": {"concern": "axis"}
+    },
+    {
+      "title": "30-Degree Rule",
+      "body": "Change the camera angle by at least thirty degrees between consecutive shots of the same subject, or the cut will feel like a jump. Wider lenses need more angular change than long lenses to read as a new setup.",
+      "tags": ["angle", "cut"],
+      "attributes": {"concern": "angle"}
+    },
+    {
+      "title": "Eyeline Match",
+      "body": "Match the height and direction of a character's gaze to what they are looking at in the next shot, keeping the look consistent across the cut. A mismatched eyeline makes the scene feel like two unrelated takes.",
+      "tags": ["eyeline", "gaze"],
+      "attributes": {"concern": "eyeline"}
+    },
+    {
+      "title": "Matching Action on Cut",
+      "body": "Overlap the action at the head and tail of each take so the editor can cut on a movement and hide the splice. Rehearse the same gesture speed in both setups and slate clearly for the editor.",
+      "tags": ["action", "overlap"],
+      "attributes": {"concern": "action"}
+    },
+    {
+      "title": "Screen Direction",
+      "body": "Keep a moving subject traveling in the same screen direction across cuts unless a reversal is deliberate and shown. A car that exits left and re-enters heading right reads as going back.",
+      "tags": ["direction", "geography"],
+      "attributes": {"concern": "direction"}
+    },
+    {
+      "title": "Jump Cut",
+      "body": "A jump cut removes time within the same framing, producing a visible jolt that can feel urgent, comic, or abrasive. Use it deliberately and keep the background and wardrobe stable so the disruption reads as intended.",
+      "tags": ["time", "edit"],
+      "attributes": {"concern": "time"}
+    },
+    {
+      "title": "Cutaway",
+      "body": "Cut to a related detail or another character to bridge an edit, cover a continuity problem, or control pace. Shoot cutaways from the scene's established axis and with matching light so they belong.",
+      "tags": ["coverage", "edit"],
+      "attributes": {"concern": "coverage"}
+    },
+    {
+      "title": "Match Cut",
+      "body": "Link two shots through a shared shape, movement, or sound so the cut feels inevitable, such as a hand reaching for a door matching a hand reaching for a gun. The match must be precise in position and timing.",
+      "tags": ["transition", "shape"],
+      "attributes": {"concern": "transition"}
+    },
+    {
+      "title": "Coverage for the Edit",
+      "body": "Shoot a master plus clean singles, overs, and inserts so the editor has enough angles to build the scene and fix problems. Match lens, light, and action across setups, and protect every line with a reaction.",
+      "tags": ["coverage", "insurance"],
+      "attributes": {"concern": "coverage"}
+    },
+    {
+      "title": "Prop Continuity",
+      "body": "Track every hand prop through the scene and reset it to the same position, fill level, and condition between takes. Photograph the set at the start of each setup, because a moved glass or cigarette will cut badly.",
+      "tags": ["props", "reset"],
+      "attributes": {"concern": "props"}
+    },
+    {
+      "title": "Costume and Hair Continuity",
+      "body": "Continuity stills of costume, hair, and makeup at the start and end of each setup catch changes that the eye misses on set. Reset sweat, blood, and wrinkles to the scripted stage before every take.",
+      "tags": ["wardrobe", "reset"],
+      "attributes": {"concern": "wardrobe"}
+    }
+  ]
+}

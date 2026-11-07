@@ -1,0 +1,95 @@
+{
+  "category": "lens",
+  "chunks": [
+    {
+      "title": "Ultra-Wide 14-18mm Lens",
+      "body": "Use an ultra-wide when the space itself is the subject, because it stretches foreground depth, bends verticals near the edges, and makes small rooms feel vast. Keep the camera level to control keystoning and place something in the near foreground so the frame does not feel empty.",
+      "tags": ["ultra_wide", "perspective"],
+      "attributes": {"focal_mm": "14-18", "type": "prime"}
+    },
+    {
+      "title": "24mm Wide Lens",
+      "body": "A 24mm covers a room or a street corner while keeping a human-scale perspective, which makes it a workhorse for handheld and Steadicam work. Keep faces away from the edges, where stretching is most visible.",
+      "tags": ["wide", "environment"],
+      "attributes": {"focal_mm": "24", "type": "prime"}
+    },
+    {
+      "title": "28-35mm Reportage Lens",
+      "body": "The 28-35mm range feels close to human peripheral vision, so it supports walk-and-talk, reportage, and environmental portraits without obvious distortion. It lets you stay near the actor and still show the room.",
+      "tags": ["reportage", "environmental"],
+      "attributes": {"focal_mm": "28-35", "type": "prime"}
+    },
+    {
+      "title": "50mm Normal Lens",
+      "body": "A 50mm approximates human central vision and renders faces and spaces without strong stretch or compression. Use it when the audience should feel present in the scene rather than manipulated by the optics.",
+      "tags": ["normal", "natural"],
+      "attributes": {"focal_mm": "50", "type": "prime"}
+    },
+    {
+      "title": "85mm Portrait Lens",
+      "body": "An 85mm flatters faces by compressing features slightly and throwing the background out of focus at wide apertures. It keeps a comfortable working distance for intimate dialogue without the distortion of a wide lens.",
+      "tags": ["portrait", "bokeh"],
+      "attributes": {"focal_mm": "85", "type": "prime"}
+    },
+    {
+      "title": "100mm Macro Lens",
+      "body": "A macro lens focuses close enough to fill the frame with an eye, a coin, or a texture at life size or greater. Depth of field collapses at close range, so stop down or use focus stacking and lock the subject down.",
+      "tags": ["macro", "detail"],
+      "attributes": {"focal_mm": "100", "type": "prime"}
+    },
+    {
+      "title": "135mm Lens",
+      "body": "A 135mm isolates a face from a crowd or a street with strong compression and a narrow angle of view. It is discreet at a distance but demands careful focus and a stable support.",
+      "tags": ["telephoto", "isolation"],
+      "attributes": {"focal_mm": "135", "type": "prime"}
+    },
+    {
+      "title": "200mm Telephoto Lens",
+      "body": "Long telephoto lenses compress distance, flatten faces, and isolate a subject from clutter, which suits surveillance, landscape layers, and crowd intimacy. Use a solid tripod and a long lens support, and mind atmospheric haze.",
+      "tags": ["telephoto", "compression"],
+      "attributes": {"focal_mm": "200+", "type": "prime"}
+    },
+    {
+      "title": "Telephoto Compression",
+      "body": "Longer focal lengths make background objects appear larger relative to the subject and stack depth layers into a graphic wall. Use compression to trap a character against the skyline or to make a crowd feel oppressive.",
+      "tags": ["compression", "depth"],
+      "attributes": {"focal_mm": "70-200", "type": "zoom"}
+    },
+    {
+      "title": "Wide-Angle Distortion",
+      "body": "Wide lenses exaggerate whatever is nearest the glass and stretch objects toward the corners, which can make a room or a face look wrong. Correct it with distance and leveling, or use the distortion deliberately for unease.",
+      "tags": ["distortion", "wide_angle"],
+      "attributes": {"focal_mm": "14-24", "type": "zoom"}
+    },
+    {
+      "title": "Prime Versus Zoom",
+      "body": "Primes are typically faster, sharper, and smaller, while zooms trade some speed and optical quality for framing flexibility on moving subjects. Choose primes for controlled lighting and zooms for documentary or fast coverage.",
+      "tags": ["optics", "choice"],
+      "attributes": {"focal_mm": "varies", "type": "comparison"}
+    },
+    {
+      "title": "T-Stop Versus F-Stop",
+      "body": "An f-stop is a geometric ratio, while a T-stop measures actual light transmission, so cine lenses are marked in T-stops for consistent exposure across a set. Match T-stops when cutting between lenses rather than matching f-numbers.",
+      "tags": ["exposure", "cine"],
+      "attributes": {"focal_mm": "any", "type": "comparison"}
+    },
+    {
+      "title": "ND Filters",
+      "body": "Neutral density filters cut light without changing color, letting you hold a wide aperture or a slow shutter in bright conditions. Use a matte box with graduated or variable ND and check for infrared pollution on dense filters.",
+      "tags": ["filtration", "exposure"],
+      "attributes": {"focal_mm": "any", "type": "filter"}
+    },
+    {
+      "title": "Polarizing Filter",
+      "body": "A circular polarizer deepens blue sky, cuts reflections from glass and water, and saturates foliage, with the strongest effect at ninety degrees to the sun. Rotate it per shot and expect roughly two stops of light loss.",
+      "tags": ["filtration", "reflections"],
+      "attributes": {"focal_mm": "any", "type": "filter"}
+    },
+    {
+      "title": "Anamorphic Lens",
+      "body": "Anamorphic lenses squeeze a wide image onto the sensor and are desqueezed in post, producing oval bokeh, horizontal flares, and a gentle field curvature. They need alignment checks and a consistent desqueeze across the whole production.",
+      "tags": ["anamorphic", "flares"],
+      "attributes": {"focal_mm": "40-50", "type": "anamorphic"}
+    }
+  ]
+}

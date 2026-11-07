@@ -1,8 +1,8 @@
 # OneShot — Development Status
 
-> Last updated: 2026-11-03
-> Current phase: **Phase 6 - Cinematic Knowledge / RAG — M6.1 DONE (awaiting review)**
-> Next: **M6.2 - knowledge schema, seed corpus, Qdrant store, ingest**
+> Last updated: 2026-11-04
+> Current phase: **Phase 6 - Cinematic Knowledge / RAG — M6.2 DONE (awaiting review)**
+> Next: **M6.3 - retrieval layer**
 
 This file is a temporary, living log of project development status. It is
 updated after each phase milestone and whenever a significant issue or
@@ -20,7 +20,7 @@ we actually stand and what went wrong along the way.
 | 3 | Structured Scene Understanding | DONE | LLM detection + typo tolerance, validated analysis, full pipeline, UI buttons, migration, tests |
 | 4 | Scene to Shot Segmentation | DONE | Shot + ProductionConstraints models, generator, validation, continuity, constraint merge, endpoints, pipeline hook, tests |
 | 5 | Shot Editing and Validation | DONE | PATCH/DELETE/reorder/approve, draft renumbering, continuity rebuild, 22 new tests |
-| 6 | Cinematic Knowledge / RAG | IN PROGRESS | M6.1 done: LiteRT-only inference, pinned 768-dim embeddings; Qdrant/retrieval next |
+| 6 | Cinematic Knowledge / RAG | IN PROGRESS | M6.2 done: 101-chunk corpus, Qdrant local store, idempotent ingest, auto-seed; retrieval next |
 | 7 | Storyboard Generation | NOT STARTED | — |
 | 8 | Frontend | NOT STARTED | — |
 
@@ -153,8 +153,42 @@ M6.1 — LiteRT standardization + embedding foundation (DONE, awaiting review):
 - Known constraint: local embedding latency (~7s/call) dominates corpus
   ingestion and adds latency per retrieval query; tracked for M6.2/M6.5.
 
-M6.2–M6.5: see `docs/plan.md` Phase 6 milestones (Qdrant store, reviewed seed
-corpus, retrieval, strict pipeline integration, evaluation).
+M6.2 — Knowledge schema, seed corpus, Qdrant store, ingest (DONE, awaiting review):
+
+- `rag/knowledge.py`: `KnowledgeCategory` enum + `KnowledgeChunk`
+  (`category`, `title`, `body`, `tags`, `attributes`) with derived
+  `chunk_id = "{category}:{slug(title)}"`; loads/validates every JSON file in
+  `rag/seed/`, rejects duplicate ids, and hashes the canonical corpus
+  (`corpus_sha`).
+- Seed corpus (101 chunks, `corpus_sha=b3e44066…`): shot_type 22,
+  composition 20, camera_technique 18, lens 15, movement 14, continuity 12.
+  Written as practical rules (when to use, what goes wrong), not filler.
+- `rag/store.py`: replaceable `QdrantStore` wrapper over `qdrant-client`
+  (local-file default under `data/qdrant`, HTTP optional). Point ids are
+  `uuid5(namespace, chunk_id)` so re-ingestion is an idempotent upsert.
+  Dimension/signature mismatches raise `CollectionMismatchError`; a locked
+  local folder raises `VectorStoreError` with an actionable message.
+- `rag/ingest.py`: embeds via M6.1 `rag/embeddings.py`, validates count and
+  dimensions **before** any destructive step, skips when every stored payload
+  matches the current signature + corpus sha, refuses signature drift unless
+  `--force`, and exposes `seed_knowledge_if_needed()` + a
+  `python -m oneshot.rag.ingest` CLI.
+- `main.py` seeds an empty collection in a background lifespan task; failures
+  log a warning and never block startup.
+- 27 new tests (`test_rag_knowledge.py`, `test_rag_store.py`,
+  `test_rag_ingest.py`) covering schema/checksum determinism, local persistence
+  and folder locking, idempotent skips, signature drift, dimension mismatch,
+  force-rebuild safety, and lifespan auto-seed. Suite **196 passed**, ruff clean.
+- Windows qdrant-local quirk: `delete_collection()` leaves the collection's
+  SQLite handle open, so a same-name recreate silently reuses old vectors
+  (`ValueError: could not broadcast input array ...`). Workaround:
+  `gc.collect()` then remove `<storage>/collection/<name>` before recreating.
+- Known constraint: local embedding latency (~7s/call) makes a full corpus
+  ingest take ~12 minutes; `RAG_EMBED_CONCURRENCY` cannot speed it up because
+  the LiteRT service serializes requests.
+
+M6.3–M6.5: see `docs/plan.md` Phase 6 milestones (retrieval, strict pipeline
+integration, evaluation).
 
 ---
 ## Issues & Decisions Log
@@ -194,6 +228,8 @@ corpus, retrieval, strict pipeline integration, evaluation).
 | 2026-09-25 | 4 | feature | User: human-friendly shot grammar; establishing shot when location changes (incl. first scene); emotional Close-Up; Extreme Close-Up for character intro/tension; constraints next to shots; ask constraints before generation with Skip | **Prompt** (`prompts.py`): plain-English language-style block + cinematography rules (establishing / emotional Close-Up / ECU intro ≤2 per scene) driven by a `context` object. **Service** (`shot_service.build_scene_context`): injects `first_scene`, `location_changed` (normalized `Scene.location` vs previous scene), `new_characters` as JSON into `{scene_json}`; covers single + batch (batch loops this path). **UI**: native `<dialog id="constraints-dialog">` shown before Generate (per-scene + batch) with **Save & generate / Skip / Cancel**; prefilled from effective-constraint GETs with per-field Override state = applied iff differs from project defaults; Save persists scene overrides (per-scene) or project defaults (batch). Inline `<details class="scene-inline-constraints">` panel per scene card in Shots tab. **Robustness**: `{"type":"array","items":[...]}` envelope unwrapped before validation. Live-verified via Ollama (LiteRT services were down): first shot `Wide` establishing ✓, plain-English action ✓, emotional `Close-Up` ✓, 4 shots persisted, `[]` warnings (ECU-intro rule present but model-dependent — skipped in that particular run). Suite 140 passed, ruff clean. |
 | 2026-09-25 | 4 | ai | Shot 1 failed validation with `7 validation errors for AIShotData`, `shot_type` input `'array'` — LiteRT/Gemma 4 E2B echoed the JSON Schema instead of shots | LiteRT's `response_format=json_object` is ignored by `litert-llm-service` (no schema-constrained decoding), so the model occasionally returns the schema inside the array. The unconditional `type→shot_type` alias then rewrote `{"type":"array","items":…}` into `{"shot_type":"array",…}`, masking the real problem as enum/missing-field errors. Fixed in `ai/shot_generator.py`: explicit schema-echo detection (`_is_schema_echo`, keys ⊆ JSON-Schema keys + `items`/`properties`) fails fast with a descriptive error; alias now applies only when the `type` value is a legitimate `ShotType`; raw LLM response logged at DEBUG only on validation failure. `prompts.py`: explicit "never echo the schema" instruction. Tests: +3 (echo rejection, mixed echo+valid → whole response fails, `type` alias still works). Suite 143 passed, ruff clean. |
 | 2026-11-03 | 6 | ai/config | Multiple provider paths (Ollama/Gemini/HF/Nomic) contradicted the single-runtime decision; embedding client existed but nothing consumed it | User decision: **LiteRT-only** inference. Removed all alternate provider implementations/settings/endpoints; pinned `litert/embeddinggemma-300m` at **768 dims** with reject-and-re-ingest semantics; added validated, L2-normalized batched embeddings (`rag/embeddings.py`). Suite **169 passed**, ruff clean. M6.2 (Qdrant, corpus, ingest) pending review. |
+| 2026-11-04 | 6 | rag/store | qdrant-client 1.20 local mode: deleting and recreating a collection on Windows silently reuses the old vectors (`could not broadcast input array from shape (768,) into shape (8,)`), corrupting the collection | Reproduced in isolation. Root cause: `delete_collection()` does not release the collection's SQLite handle, so the folder cannot be removed and a same-name recreate picks up stale data. Fix in `_recreate_collection`: `gc.collect()` then `shutil.rmtree(<storage>/collection/<name>)` before `create_collection`; verified with a close/delete/reopen/upsert script. |
+| 2026-11-04 | 6 | rag | Corpus ingestion must never destroy the current collection on a failed embedding call | Reordered `ingest_corpus`: `--force` (and dimension-mismatch rebuilds) defer the destructive recreate until after every vector is embedded and dimension-checked. Regression test `test_force_rebuild_preserves_data_until_vectors_validate`. |
 
 ---
 
@@ -201,7 +237,8 @@ corpus, retrieval, strict pipeline integration, evaluation).
 
 | Blocker | Blocks | Notes |
 |---------|--------|-------|
-| Qdrant not required yet | Phase 6 (M6.2+) | Local-file mode via `qdrant-client` is the default; no server needed. HTTP mode optional for deployment. |
+| Qdrant local folder is single-process | Phase 6 (M6.2+) | Local-file mode holds an exclusive lock on `data/qdrant`; a second process gets a clear `VectorStoreError`. Use HTTP mode for concurrent processes. |
+| LiteRT LLM service (`:8101`) not running | M6.3/M6.5 | Needed only once retrieval is wired into shot generation; M6.2 ingestion uses the embedding service (`:8100`) only. |
 
 ---
 
@@ -210,7 +247,8 @@ corpus, retrieval, strict pipeline integration, evaluation).
 - Environment: `uv` — symlink `.venv` via `uv sync` (deps from `pyproject.toml`); activate with `uv run`
 - Test command: `uv run pytest`
 - Lint command: `uv run ruff check src tests`
-- Latest run: **169 passed**, 2 warnings (deprecation), ruff clean (2026-11-03)
+- Latest run: **196 passed**, 2 warnings (deprecation), ruff clean (2026-11-04)
 - Provider: **LiteRT only** — Gemma 4 E2B (`gemma-4-E2B-it`) via `litert_llm_service` on `:8101`, EmbeddingGemma 300M (`embeddinggemma-300m`, 768-dim, pinned) via `embeddinggemma-service` on `:8100`. No alternative providers.
 - M6.1 live check (2026-11-03): `rag.embed_text` returned 768-dim unit-norm vectors (7.2s first call, 13.7s for a 2-item batch); `llm.generate` replied in 4.0s.
+- M6.2 live ingest (2026-11-04), local Qdrant file store: first run `chunks=101 embedded=101 upserted=101 skipped=0`; second run in a **separate process** `embedded=0 upserted=0 skipped=101`; final collection `oneshot_knowledge` holds 101 points at 768 dims, every payload carries `embedding_signature=litert/embeddinggemma-300m` and `corpus_sha=b3e44066…`; `data/qdrant` is 0.81 MB (3 files).
 - Verified end-to-end with live LiteRT services (2026-09-21): `/providers/ping` (LLM + embeddings), project → screenplay upload → full pipeline → 4/4 scenes analyzed → screenplay metadata extracted.

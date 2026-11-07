@@ -1,0 +1,89 @@
+{
+  "category": "movement",
+  "chunks": [
+    {
+      "title": "Push-In",
+      "body": "Move the camera toward the subject on track to increase attention and pressure, ending tighter without a cut. It signals a character's realization or a shift in power, and needs a level track and a repeatable end mark.",
+      "tags": ["push_in", "tension"],
+      "attributes": {"rig": "dolly", "direction": "in"}
+    },
+    {
+      "title": "Pull-Back Reveal",
+      "body": "Retreat from the subject to expose the surrounding world, turning a private moment into context. Use it to end a scene or to reveal that the character is not alone, and keep the start frame clean for the reveal.",
+      "tags": ["pull_back", "reveal"],
+      "attributes": {"rig": "dolly", "direction": "out"}
+    },
+    {
+      "title": "Trucking Move",
+      "body": "Slide the camera sideways parallel to the subject on track so the background parallax shifts while the subject holds size. It is the standard move for reading a line of people, a street, or a room without turning the lens.",
+      "tags": ["lateral", "parallax"],
+      "attributes": {"rig": "dolly", "direction": "lateral"}
+    },
+    {
+      "title": "Arc Shot",
+      "body": "Circle the subject so the background rotates and the face moves from profile to frontal, which builds momentum and shifts our relationship to them. Keep the radius constant and rehearse the focus and light changes around the circle.",
+      "tags": ["orbit", "momentum"],
+      "attributes": {"rig": "dolly", "direction": "arc"}
+    },
+    {
+      "title": "Crane Up",
+      "body": "Rise vertically on a crane or jib to lift the audience above the action and show scale or consequence. The move needs a balanced arm, a clear arc, and a planned end frame because the rig cannot correct mid-move.",
+      "tags": ["crane", "scale"],
+      "attributes": {"rig": "crane", "direction": "up"}
+    },
+    {
+      "title": "Crane Down",
+      "body": "Descend into the scene to move from overview to intimacy or to land on a detail as the frame settles. Time the descent to a line or action and keep the arm's path clear of lights and the boom.",
+      "tags": ["crane", "intimacy"],
+      "attributes": {"rig": "crane", "direction": "down"}
+    },
+    {
+      "title": "Pedestal Move",
+      "body": "Raise or lower the camera on a pedestal or boom without changing the lens angle, which shifts the horizon and the subject's height in frame. Small pedestals can be operated silently during dialogue, while larger moves need a dolly or crane.",
+      "tags": ["vertical", "horizon"],
+      "attributes": {"rig": "pedestal", "direction": "vertical"}
+    },
+    {
+      "title": "Handheld Follow",
+      "body": "Walk behind or beside a moving subject with the camera on your shoulder, absorbing steps through bent knees and a loose grip. The imperfection keeps urgency and immediacy, so do not over-stabilize it.",
+      "tags": ["handheld", "urgency"],
+      "attributes": {"rig": "handheld", "direction": "follow"}
+    },
+    {
+      "title": "Steadicam Walk-and-Talk",
+      "body": "Follow actors through corridors and rooms on a Steadicam, matching their pace and letting the operator lead with the sled. Rehearse doorways and turns, and keep the horizon level through the whole path.",
+      "tags": ["steadicam", "walk_and_talk"],
+      "attributes": {"rig": "steadicam", "direction": "follow"}
+    },
+    {
+      "title": "Whip-Pan Transition",
+      "body": "Swing the camera off one subject and onto another in a blurred arc, using the motion to hide the cut or to land a comic beat. The outgoing and incoming frames must have matched blur and speed to sell the transition.",
+      "tags": ["transition", "blur"],
+      "attributes": {"rig": "tripod", "direction": "lateral"}
+    },
+    {
+      "title": "Dolly Zoom",
+      "body": "Move the dolly toward the subject while zooming out, or away while zooming in, holding the subject's size while the background stretches. The effect conveys vertigo or realization and requires a marked dolly path and a synchronized zoom.",
+      "tags": ["dolly_zoom", "vertigo"],
+      "attributes": {"rig": "dolly_zoom", "direction": "in"}
+    },
+    {
+      "title": "Tracking Follow",
+      "body": "Travel with a moving subject on a dolly, vehicle, or gimbal so they stay the same size while the world streams past. Establish the speed early, watch for track ends, and keep the subject's eyeline clear.",
+      "tags": ["tracking", "motion"],
+      "attributes": {"rig": "vehicle", "direction": "follow"}
+    },
+    {
+      "title": "Reverse Tracking",
+      "body": "Lead the subject by moving backward as they advance, keeping their face toward the lens while the space behind them recedes. It demands a clear path, a spotter, and a steady pace so the subject never catches the camera.",
+      "tags": ["reverse", "lead"],
+      "attributes": {"rig": "dolly", "direction": "back"}
+    },
+    {
+      "title": "Rising Reveal",
+      "body": "Start behind an occluding foreground and rise until the subject and setting are revealed, controlling when information arrives. The reveal should be motivated by a line or action, and the rig must clear the obstruction without clipping.",
+      "tags": ["reveal", "occlusion"],
+      "attributes": {"rig": "crane", "direction": "up"}
+    }
+  ]
+}
